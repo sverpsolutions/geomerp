@@ -1,0 +1,51 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+venv/
+venv_*/
+.venv/
+*.log
+
+# Node
+node_modules/
+frontend/dist/
+
+# Third-party tool repos (install separately)
+ponytail-main/
+graphify-8/
+graphify-out/
+
+# One-off debug/check scripts (many hold DB creds) — only the sync worker is used at runtime
+backend/*.py
+!backend/global_sync_worker.py
+backend/scratch/
+scratch/
+
+# Runtime data, logs, build noise
+backend/uploads/
+*.txt
+!requirements.txt
+!fmcg_reports/README.txt
+!fmcg_reports/SETUP_AND_RUN.txt
+*.tsbuildinfo
+validation.log
+
+# fmcg_reports: local creds + real GST/report data
+fmcg_reports/db_config.json
+fmcg_reports/logs/
+fmcg_reports/exports/*.xlsx
+fmcg_reports/*.xls
+fmcg_reports/*.xlsx
+
+# Local / OS
+.claude/settings.local.json
+.DS_Store
+Thumbs.db
+
+# Store server list with credentials
+outlets_data.csv

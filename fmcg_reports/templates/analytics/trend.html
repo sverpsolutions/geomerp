@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block title %}Sales Trend{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-graph-up-arrow"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?from_date={{ from_date }}&to_date={{ to_date }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','Sales Trend')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">From Date</label>
+      <input type="date" name="from_date" class="form-control form-control-sm" value="{{ from_date }}"></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">To Date</label>
+      <input type="date" name="to_date" class="form-control form-control-sm" value="{{ to_date }}"></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Apply</button></div>
+  </form>
+</div>
+
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Days</div><div class="kpi-val">{{ df|length }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Sales</div><div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['TOTAL_SALES'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Bills</div><div class="kpi-val text-primary">{{ df['BILL_COUNT'].sum()|int }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Avg Daily Sales</div><div class="kpi-val">₹{{ "{:,.0f}".format(df['TOTAL_SALES'].mean()) }}</div></div></div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-3">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-graph-up"></i> Daily Sales Trend</div>
+      <div class="card-body"><canvas id="trendChart" height="120"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-bar-chart"></i> Bills per Day</div>
+      <div class="card-body"><canvas id="billChart" height="120"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Weekday Analysis -->
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-calendar-week"></i> Sales by Weekday</div>
+      <div class="card-body"><canvas id="weekChart" height="140"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-table"></i> Daily Summary Table</div>
+      <div class="card-body p-0">
+        <div style="max-height:280px;overflow-y:auto;">
+          <table class="table table-hover table-sm table-report mb-0">
+            <thead>
+              <tr><th>Date</th><th>Day</th><th class="text-end">Bills</th><th class="text-end">Sales (₹)</th><th class="text-end">Avg (₹)</th></tr>
+            </thead>
+            <tbody>
+              {% for _, row in df.iterrows() %}
+              <tr>
+                <td>{{ row.SALE_DATE }}</td>
+                <td><span class="badge bg-light text-dark">{{ row.WEEKDAY[:3] }}</span></td>
+                <td class="text-end">{{ row.BILL_COUNT }}</td>
+                <td class="text-end fw-bold text-success">{{ "{:,.0f}".format(row.TOTAL_SALES) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.AVG_BILL_VALUE) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info">No trend data available for selected period.</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if not df.empty %}
+<script>
+const chartData = {{ chart_data|safe }};
+const labels    = chartData.map(r => r.SALE_DATE);
+const sales     = chartData.map(r => r.TOTAL_SALES);
+const bills     = chartData.map(r => r.BILL_COUNT);
+
+// Trend line chart
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Sales (₹)',
+      data: sales,
+      borderColor: '#1a4e8f',
+      backgroundColor: 'rgba(26,78,143,0.08)',
+      fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#1a4e8f'
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } },
+      x: { ticks: { maxTicksLimit: 12 } }
+    }
+  }
+});
+
+// Bills bar chart
+new Chart(document.getElementById('billChart'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Bills',
+      data: bills,
+      backgroundColor: '#f4a621',
+      borderRadius: 3
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { x: { ticks: { maxTicksLimit: 10 } } }
+  }
+});
+
+// Weekday aggregation
+const weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const wdMap = {};
+chartData.forEach(r => {
+  // group by weekday
+});
+// Build weekday sales from raw df
+const wdSales = {{ df.groupby('WEEKDAY')['TOTAL_SALES'].sum().reindex(['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], fill_value=0).to_dict()|tojson }};
+new Chart(document.getElementById('weekChart'), {
+  type: 'bar',
+  data: {
+    labels: Object.keys(wdSales),
+    datasets: [{
+      label: 'Total Sales (₹)',
+      data: Object.values(wdSales),
+      backgroundColor: ['#1a4e8f','#2563b0','#3b82d6','#f4a621','#ef6c00','#198754','#0dcaf0'],
+      borderRadius: 4
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } } }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

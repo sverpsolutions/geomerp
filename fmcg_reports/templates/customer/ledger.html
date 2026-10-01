@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}Customer Ledger{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-journal-text"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    {% if not df.empty %}
+    <a href="?mobile={{ mobile }}&from_date={{ from_date }}&to_date={{ to_date }}&export=pdf"   class="btn btn-export-pdf btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+    <a href="?mobile={{ mobile }}&from_date={{ from_date }}&to_date={{ to_date }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','Customer Ledger')"><i class="bi bi-envelope"></i> Email</button>
+    {% endif %}
+  </div>
+</div>
+
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Mobile Number</label>
+      <input type="tel" name="mobile" class="form-control form-control-sm" value="{{ mobile }}" placeholder="Enter Mobile No." style="width:160px"></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">From Date</label>
+      <input type="date" name="from_date" class="form-control form-control-sm" value="{{ from_date }}"></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">To Date</label>
+      <input type="date" name="to_date" class="form-control form-control-sm" value="{{ to_date }}"></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Search</button></div>
+  </form>
+</div>
+
+{% if not df.empty %}
+<!-- Customer info banner -->
+{% set cname = df['CUSTOMER_NAME'].iloc[0] %}
+{% set cmobile = df['MOBILE'].iloc[0] or df['CUSTOMER_NAME'].iloc[0] %}
+<div class="alert" style="background:var(--light);border-left:4px solid var(--brand)">
+  <strong>{{ cname }}</strong> &nbsp;|&nbsp; Mobile: {{ cmobile or 'N/A' }}
+  &nbsp;|&nbsp; Period: {{ from_date }} to {{ to_date }}
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Bills</div><div class="kpi-val">{{ df|length }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Purchased</div><div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['BILL_AMOUNT'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Discount</div><div class="kpi-val text-warning">₹{{ "{:,.0f}".format(df['DISCOUNT'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Points Redeemed</div><div class="kpi-val text-primary">₹{{ "{:,.0f}".format(df['REDEEM_AMOUNT'].sum()) }}</div></div></div>
+</div>
+{% elif mobile %}
+<div class="alert alert-warning">No records found for Mobile: <b>{{ mobile }}</b> in selected period.</div>
+{% else %}
+<div class="alert alert-info"><i class="bi bi-info-circle"></i> Enter a Mobile Number above and click Search to view ledger.</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span><i class="bi bi-table"></i> Transaction Ledger</span>
+    <span class="badge bg-light text-dark">{{ df|length }} bills</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead>
+          <tr>
+            <th>Date</th><th>Bill#</th><th>Dept</th>
+            <th class="text-end">Bill Amt (₹)</th>
+            <th class="text-end">Discount (₹)</th>
+            <th class="text-end">Redeem (₹)</th>
+            <th>Payment Mode</th>
+            <th class="text-end">Paid (₹)</th>
+            <th class="text-end">Balance (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          <tr>
+            <td>{{ row.BILL_DATE }}</td>
+            <td>{{ row.BILL_NO }}</td>
+            <td>{{ row.DEPT_CODE }}</td>
+            <td class="text-end fw-bold">{{ "{:,.2f}".format(row.BILL_AMOUNT) }}</td>
+            <td class="text-end text-warning">{{ "{:,.2f}".format(row.DISCOUNT) }}</td>
+            <td class="text-end text-info">{{ "{:,.2f}".format(row.REDEEM_AMOUNT) }}</td>
+            <td><span class="badge bg-primary">{{ row.PAYMENT_MODE }}</span></td>
+            <td class="text-end text-success">{{ "{:,.2f}".format(row.PAID_AMOUNT) }}</td>
+            <td class="text-end {% if row.BALANCE > 0 %}text-danger{% endif %}">{{ "{:,.2f}".format(row.BALANCE) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9" class="text-center text-muted py-4">No records</td></tr>
+          {% endfor %}
+        </tbody>
+        {% if not df.empty %}
+        <tfoot class="table-secondary fw-bold">
+          <tr>
+            <td colspan="3">TOTAL</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['BILL_AMOUNT'].sum()) }}</td>
+            <td class="text-end text-warning">{{ "{:,.2f}".format(df['DISCOUNT'].sum()) }}</td>
+            <td class="text-end text-info">{{ "{:,.2f}".format(df['REDEEM_AMOUNT'].sum()) }}</td>
+            <td></td>
+            <td class="text-end text-success">{{ "{:,.2f}".format(df['PAID_AMOUNT'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['BALANCE'].sum()) }}</td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

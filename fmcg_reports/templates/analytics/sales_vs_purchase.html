@@ -1,0 +1,75 @@
+{% extends 'base.html' %}{% block title %}Sales vs Purchase{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-arrow-left-right"></i> {{ title }}</h5>
+  <a href="?year={{ year }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+</div>
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Year</label>
+      <select name="year" class="form-select form-select-sm">{% for y in range(2020,2027) %}<option value="{{ y }}" {% if year|int==y %}selected{% endif %}>{{ y }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Apply</button></div>
+  </form>
+</div>
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Sales</div><div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['SALES_VALUE'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Purchase</div><div class="kpi-val text-primary">₹{{ "{:,.0f}".format(df['PURCHASE_VALUE'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Net Margin</div><div class="kpi-val {% if df['NET_MARGIN'].sum()>0 %}text-success{% else %}text-danger{% endif %}">₹{{ "{:,.0f}".format(df['NET_MARGIN'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Avg Gross Margin%</div><div class="kpi-val text-primary">{{ "{:.1f}".format(df['GROSS_MARGIN_PCT'].mean()) }}%</div></div></div>
+</div>
+<div class="card mb-3">
+  <div class="card-header"><i class="bi bi-bar-chart"></i> Monthly Sales vs Purchase Comparison</div>
+  <div class="card-body"><canvas id="svpChart" height="100"></canvas></div>
+</div>
+{% endif %}
+<div class="card"><div class="card-header"><i class="bi bi-table"></i> Month-wise Comparison</div>
+<div class="card-body p-0"><div class="table-scroll">
+<table class="table table-hover table-bordered table-report mb-0">
+  <thead><tr><th>Year</th><th>Month</th><th class="text-end">Sales (₹)</th><th class="text-end">Purchase (₹)</th><th class="text-end">Returns (₹)</th><th class="text-end">Net Sales (₹)</th><th class="text-end">Net Margin (₹)</th><th class="text-end">Margin%</th></tr></thead>
+  <tbody>
+    {% for _, row in df.iterrows() %}
+    <tr>
+      <td>{{ row.YEAR }}</td><td>{{ row.MONTH_NAME }}</td>
+      <td class="text-end fw-bold text-success">{{ "{:,.2f}".format(row.SALES_VALUE) }}</td>
+      <td class="text-end text-primary">{{ "{:,.2f}".format(row.PURCHASE_VALUE) }}</td>
+      <td class="text-end text-danger">{{ "{:,.2f}".format(row.RETURN_VALUE) }}</td>
+      <td class="text-end">{{ "{:,.2f}".format(row.NET_SALES) }}</td>
+      <td class="text-end {% if row.NET_MARGIN>0 %}text-success{% else %}text-danger{% endif %} fw-bold">{{ "{:,.2f}".format(row.NET_MARGIN) }}</td>
+      <td class="text-end"><span class="badge {% if row.GROSS_MARGIN_PCT>=20 %}bg-success{% elif row.GROSS_MARGIN_PCT>=10 %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ "{:.1f}".format(row.GROSS_MARGIN_PCT) }}%</span></td>
+    </tr>
+    {% else %}<tr><td colspan="8" class="text-center text-muted py-4">No data found</td></tr>{% endfor %}
+  </tbody>
+  {% if not df.empty %}<tfoot class="table-secondary fw-bold"><tr>
+    <td colspan="2">TOTAL</td>
+    <td class="text-end text-success">{{ "{:,.2f}".format(df['SALES_VALUE'].sum()) }}</td>
+    <td class="text-end text-primary">{{ "{:,.2f}".format(df['PURCHASE_VALUE'].sum()) }}</td>
+    <td class="text-end text-danger">{{ "{:,.2f}".format(df['RETURN_VALUE'].sum()) }}</td>
+    <td class="text-end">{{ "{:,.2f}".format(df['NET_SALES'].sum()) }}</td>
+    <td class="text-end text-success">{{ "{:,.2f}".format(df['NET_MARGIN'].sum()) }}</td>
+    <td></td>
+  </tr></tfoot>{% endif %}
+</table></div></div></div>
+{% endblock %}
+{% block scripts %}{% if not df.empty %}
+<script>
+const cd = {{ chart_data|safe }};
+new Chart(document.getElementById('svpChart'),{
+  type:'bar',
+  data:{
+    labels: cd.map(r=>r.MONTH_NAME||r.MONTH),
+    datasets:[
+      {label:'Sales (₹)',data:cd.map(r=>r.SALES_VALUE),backgroundColor:'rgba(26,78,143,0.8)',borderRadius:4},
+      {label:'Purchase (₹)',data:cd.map(r=>r.PURCHASE_VALUE),backgroundColor:'rgba(244,166,33,0.8)',borderRadius:4},
+      {label:'Net Margin (₹)',data:cd.map(r=>r.NET_MARGIN),type:'line',borderColor:'#198754',backgroundColor:'rgba(25,135,84,0.1)',fill:true,tension:0.4,yAxisID:'y1'}
+    ]
+  },
+  options:{
+    scales:{
+      y:{ticks:{callback:v=>'₹'+v.toLocaleString('en-IN')}},
+      y1:{position:'right',grid:{display:false},ticks:{callback:v=>'₹'+v.toLocaleString('en-IN')}}
+    },
+    plugins:{legend:{position:'top'}}
+  }
+});
+</script>{% endif %}{% endblock %}

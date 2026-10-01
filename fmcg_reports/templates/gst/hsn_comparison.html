@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% block title %}HSN Comparison{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-arrow-left-right"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?year={{ year }}&month={{ month }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','HSN Comparison')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Year</label>
+      <select name="year" class="form-select form-select-sm">
+        {% for y in range(2022,2028) %}<option value="{{ y }}" {% if year==y|string %}selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Month</label>
+      <select name="month" class="form-select form-select-sm">
+        {% for m in range(1,13) %}<option value="{{ m }}" {% if month==m|string %}selected{% endif %}>{{ m }}</option>{% endfor %}
+      </select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Compare</button></div>
+  </form>
+</div>
+
+{% if not df.empty %}
+<!-- KPI Summary -->
+<div class="row g-2 mb-3">
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#198754">
+      <div class="kpi-lbl">HSN Codes</div>
+      <div class="kpi-val">{{ df|length }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#198754">
+      <div class="kpi-lbl">Sales Taxable</div>
+      <div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['S_TAXABLE'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#198754">
+      <div class="kpi-lbl">Sales Tax</div>
+      <div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['S_TAX'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#0d6efd">
+      <div class="kpi-lbl">Purchase Taxable</div>
+      <div class="kpi-val text-primary">₹{{ "{:,.0f}".format(df['P_TAXABLE'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#0d6efd">
+      <div class="kpi-lbl">Purchase Tax (ITC)</div>
+      <div class="kpi-val text-primary">₹{{ "{:,.0f}".format(df['P_TAX'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    {% set net = df['S_TAX'].sum() - df['P_TAX'].sum() %}
+    <div class="kpi-card" style="border-left-color:{% if net>0 %}#dc3545{% else %}#198754{% endif %}">
+      <div class="kpi-lbl">Net Tax Liability</div>
+      <div class="kpi-val {% if net>0 %}text-danger{% else %}text-success{% endif %}">₹{{ "{:,.0f}".format(net) }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Comparison Table -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span><i class="bi bi-table"></i> HSN-wise Sales vs Purchase Comparison</span>
+    <span class="badge bg-light text-dark">{{ df|length }} HSN codes</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0" style="font-size:12px">
+        <thead>
+          <tr>
+            <th rowspan="2" class="align-middle">HSN Code</th>
+            <th rowspan="2" class="align-middle text-center">GST %</th>
+            <!-- Sales header -->
+            <th colspan="5" class="text-center" style="background:#d1e7dd;color:#0a3622">SALES (Outward)</th>
+            <!-- Purchase header -->
+            <th colspan="5" class="text-center" style="background:#cfe2ff;color:#052c65">PURCHASE (Inward / ITC)</th>
+            <!-- Difference header -->
+            <th colspan="3" class="text-center" style="background:#fff3cd;color:#664d03">DIFFERENCE (Sales − Purchase)</th>
+          </tr>
+          <tr>
+            <th class="text-end" style="background:#d1e7dd">Qty</th>
+            <th class="text-end" style="background:#d1e7dd">Taxable (₹)</th>
+            <th class="text-end" style="background:#d1e7dd">CGST (₹)</th>
+            <th class="text-end" style="background:#d1e7dd">SGST (₹)</th>
+            <th class="text-end" style="background:#d1e7dd">Total Tax (₹)</th>
+            <th class="text-end" style="background:#cfe2ff">Qty</th>
+            <th class="text-end" style="background:#cfe2ff">Taxable (₹)</th>
+            <th class="text-end" style="background:#cfe2ff">CGST (₹)</th>
+            <th class="text-end" style="background:#cfe2ff">SGST (₹)</th>
+            <th class="text-end" style="background:#cfe2ff">Total Tax (₹)</th>
+            <th class="text-end" style="background:#fff3cd">Qty Diff</th>
+            <th class="text-end" style="background:#fff3cd">Taxable Diff (₹)</th>
+            <th class="text-end" style="background:#fff3cd">Tax Diff (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          {% set only_sale = row.S_TAXABLE > 0 and row.P_TAXABLE == 0 %}
+          {% set only_purchase = row.P_TAXABLE > 0 and row.S_TAXABLE == 0 %}
+          <tr {% if only_sale %}style="background:#f0fff4"{% elif only_purchase %}style="background:#f0f4ff"{% endif %}>
+            <td class="fw-bold">{{ row.HSN_CODE }}</td>
+            <td class="text-center"><span class="badge bg-secondary">{{ row.GST_RATE|int }}%</span></td>
+            <!-- Sales -->
+            <td class="text-end" style="background:#f8fff9">{{ "{:,.2f}".format(row.S_QTY) }}</td>
+            <td class="text-end fw-bold" style="background:#f8fff9;color:#198754">{{ "{:,.2f}".format(row.S_TAXABLE) }}</td>
+            <td class="text-end" style="background:#f8fff9">{{ "{:,.2f}".format(row.S_CGST) }}</td>
+            <td class="text-end" style="background:#f8fff9">{{ "{:,.2f}".format(row.S_SGST) }}</td>
+            <td class="text-end fw-bold" style="background:#f8fff9;color:#198754">{{ "{:,.2f}".format(row.S_TAX) }}</td>
+            <!-- Purchase -->
+            <td class="text-end" style="background:#f5f8ff">{{ "{:,.2f}".format(row.P_QTY) }}</td>
+            <td class="text-end fw-bold" style="background:#f5f8ff;color:#0d6efd">{{ "{:,.2f}".format(row.P_TAXABLE) }}</td>
+            <td class="text-end" style="background:#f5f8ff">{{ "{:,.2f}".format(row.P_CGST) }}</td>
+            <td class="text-end" style="background:#f5f8ff">{{ "{:,.2f}".format(row.P_SGST) }}</td>
+            <td class="text-end fw-bold" style="background:#f5f8ff;color:#0d6efd">{{ "{:,.2f}".format(row.P_TAX) }}</td>
+            <!-- Difference -->
+            <td class="text-end {% if row.QTY_DIFF > 0 %}text-success{% elif row.QTY_DIFF < 0 %}text-danger{% endif %}" style="background:#fffdf0">
+              {{ "{:+,.2f}".format(row.QTY_DIFF) }}</td>
+            <td class="text-end fw-bold {% if row.TAXABLE_DIFF > 0 %}text-success{% elif row.TAXABLE_DIFF < 0 %}text-danger{% endif %}" style="background:#fffdf0">
+              {{ "{:+,.2f}".format(row.TAXABLE_DIFF) }}</td>
+            <td class="text-end fw-bold {% if row.TAX_DIFF > 0 %}text-danger{% elif row.TAX_DIFF < 0 %}text-success{% endif %}" style="background:#fffdf0">
+              {{ "{:+,.2f}".format(row.TAX_DIFF) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="15" class="text-center text-muted py-4">No data found for selected period.</td></tr>
+          {% endfor %}
+        </tbody>
+        {% if not df.empty %}
+        <tfoot class="fw-bold" style="background:#e9ecef">
+          <tr>
+            <td colspan="2">TOTAL</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['S_QTY'].sum()) }}</td>
+            <td class="text-end text-success">{{ "{:,.2f}".format(df['S_TAXABLE'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['S_CGST'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['S_SGST'].sum()) }}</td>
+            <td class="text-end text-success">{{ "{:,.2f}".format(df['S_TAX'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['P_QTY'].sum()) }}</td>
+            <td class="text-end text-primary">{{ "{:,.2f}".format(df['P_TAXABLE'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['P_CGST'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['P_SGST'].sum()) }}</td>
+            <td class="text-end text-primary">{{ "{:,.2f}".format(df['P_TAX'].sum()) }}</td>
+            {% set td = df['QTY_DIFF'].sum() %}
+            {% set xd = df['TAXABLE_DIFF'].sum() %}
+            {% set nd = df['TAX_DIFF'].sum() %}
+            <td class="text-end {% if td>0 %}text-success{% elif td<0 %}text-danger{% endif %}">{{ "{:+,.2f}".format(td) }}</td>
+            <td class="text-end {% if xd>0 %}text-success{% elif xd<0 %}text-danger{% endif %}">{{ "{:+,.2f}".format(xd) }}</td>
+            <td class="text-end {% if nd>0 %}text-danger{% elif nd<0 %}text-success{% endif %}">{{ "{:+,.2f}".format(nd) }}</td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="mt-2 d-flex gap-3" style="font-size:12px">
+  <span><span class="badge" style="background:#d1e7dd;color:#0a3622">GREEN</span> = Sales only (no purchase)</span>
+  <span><span class="badge" style="background:#cfe2ff;color:#052c65">BLUE</span> = Purchase only (no sales)</span>
+  <span class="text-danger fw-bold">+Tax Diff</span> = More tax on sales than purchase (net payable)
+  <span class="text-success fw-bold">−Tax Diff</span> = ITC > Output tax (refund possible)
+</div>
+
+{% else %}
+<div class="alert alert-warning mt-3"><i class="bi bi-exclamation-triangle"></i> No HSN data found for selected period.</div>
+{% endif %}
+{% endblock %}

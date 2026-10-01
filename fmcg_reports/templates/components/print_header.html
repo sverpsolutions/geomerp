@@ -1,0 +1,20 @@
+{# Reusable print header — shown only when printing (CSS media print) #}
+<div class="print-header">
+  {% if company.logo_path %}
+  <img src="{{ url_for('static', filename=company.logo_path) }}" alt="Logo">
+  {% endif %}
+  <h4>{{ company.company_name }}</h4>
+  {% if company.address %}
+  <div class="addr">{{ company.address | replace('\n', ' | ') }}</div>
+  {% endif %}
+  {% if company.mobile or company.email %}
+  <div class="addr">
+    {% if company.mobile %}Ph: {{ company.mobile }}{% endif %}
+    {% if company.mobile and company.email %} &nbsp;|&nbsp; {% endif %}
+    {% if company.email %}Email: {{ company.email }}{% endif %}
+  </div>
+  {% endif %}
+  {% if company.gst %}
+  <div class="gstn">GSTIN: {{ company.gst }}</div>
+  {% endif %}
+</div>

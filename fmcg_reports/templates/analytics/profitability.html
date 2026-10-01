@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Profitability Report{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-cash-coin"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?from_date={{ from_date }}&to_date={{ to_date }}&export=pdf"   class="btn btn-export-pdf btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+    <a href="?from_date={{ from_date }}&to_date={{ to_date }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','Profitability')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">From Date</label><input type="date" name="from_date" class="form-control form-control-sm" value="{{ from_date }}"></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">To Date</label><input type="date" name="to_date" class="form-control form-control-sm" value="{{ to_date }}"></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">View By</label>
+      <select name="group_by" class="form-select form-select-sm">
+        <option value="item"     {% if group_by=='item' %}selected{% endif %}>Item</option>
+        <option value="category" {% if group_by=='category' %}selected{% endif %}>Category</option>
+        <option value="customer" {% if group_by=='customer' %}selected{% endif %}>Customer</option>
+      </select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Filter</button></div>
+  </form>
+</div>
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['REVENUE'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Cost of Goods</div><div class="kpi-val text-danger">₹{{ "{:,.0f}".format(df['COST_OF_GOODS'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Gross Profit</div><div class="kpi-val text-primary">₹{{ "{:,.0f}".format(df['GROSS_PROFIT'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Overall Margin</div>
+    <div class="kpi-val {% if df['REVENUE'].sum()>0 and (df['GROSS_PROFIT'].sum()/df['REVENUE'].sum()*100)>=20 %}text-success{% else %}text-warning{% endif %}">
+      {% if df['REVENUE'].sum()>0 %}{{ "{:.1f}".format(df['GROSS_PROFIT'].sum()/df['REVENUE'].sum()*100) }}%{% else %}0%{% endif %}
+    </div></div></div>
+</div>
+{% endif %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between"><span><i class="bi bi-table"></i> Profitability Detail</span><span class="badge bg-light text-dark">{{ df|length }} records</span></div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead><tr>
+          <th>Month</th><th>Item</th><th>Category</th><th>Brand</th><th>Customer</th>
+          <th class="text-end">Qty</th><th class="text-end">Revenue (₹)</th>
+          <th class="text-end">COGS (₹)</th><th class="text-end">Discount (₹)</th>
+          <th class="text-end">Gross Profit (₹)</th><th class="text-end">Margin%</th>
+        </tr></thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          <tr>
+            <td>{{ row.MONTH_NAME }} {{ row.YEAR }}</td>
+            <td class="fw-bold">{{ row.ITEM_NAME }}</td>
+            <td><span class="badge bg-light text-dark">{{ row.CATEGORY or '—' }}</span></td>
+            <td>{{ row.BRAND or '—' }}</td>
+            <td>{{ row.CUSTOMER_NAME or 'Walk-in' }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.QTY_SOLD) }}</td>
+            <td class="text-end text-success fw-bold">{{ "{:,.2f}".format(row.REVENUE) }}</td>
+            <td class="text-end text-danger">{{ "{:,.2f}".format(row.COST_OF_GOODS) }}</td>
+            <td class="text-end text-warning">{{ "{:,.2f}".format(row.DISCOUNT_GIVEN) }}</td>
+            <td class="text-end text-primary fw-bold">{{ "{:,.2f}".format(row.GROSS_PROFIT) }}</td>
+            <td class="text-end">
+              <span class="badge {% if row.MARGIN_PCT>=20 %}bg-success{% elif row.MARGIN_PCT>=10 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                {{ "{:.1f}".format(row.MARGIN_PCT) }}%
+              </span>
+            </td>
+          </tr>
+          {% else %}<tr><td colspan="11" class="text-center text-muted py-4">No data</td></tr>{% endfor %}
+        </tbody>
+        {% if not df.empty %}
+        <tfoot class="table-secondary fw-bold"><tr>
+          <td colspan="5">TOTAL</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['QTY_SOLD'].sum()) }}</td>
+          <td class="text-end text-success">{{ "{:,.2f}".format(df['REVENUE'].sum()) }}</td>
+          <td class="text-end text-danger">{{ "{:,.2f}".format(df['COST_OF_GOODS'].sum()) }}</td>
+          <td class="text-end text-warning">{{ "{:,.2f}".format(df['DISCOUNT_GIVEN'].sum()) }}</td>
+          <td class="text-end text-primary">{{ "{:,.2f}".format(df['GROSS_PROFIT'].sum()) }}</td>
+          <td></td>
+        </tr></tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

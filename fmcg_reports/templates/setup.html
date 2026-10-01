@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetailWizard Reports — Database Installation & Setup</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.65);
+            --border-color: rgba(255, 255, 255, 0.07);
+            --primary: #3b82f6;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --error: #ef4444;
+            --cyan: #06b6d4;
+            --text: #f3f4f6;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(6, 182, 212, 0.15) 0px, transparent 50%);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            padding: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+        }
+
+        .header-logo {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+            letter-spacing: -0.5px;
+        }
+
+        .subheader {
+            color: #9ca3af;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        label {
+            font-weight: 500;
+            font-size: 13px;
+            color: #9ca3af;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-control, .form-select {
+            background: rgba(31, 41, 55, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            color: #f3f4f6;
+            padding: 12px 16px;
+            font-size: 14.5px;
+            transition: all 0.25s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: rgba(31, 41, 55, 0.8);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
+            color: #ffffff;
+        }
+
+        .btn-setup {
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: none;
+            width: 100%;
+        }
+
+        .btn-test {
+            background: transparent;
+            border: 1.5px solid var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-test:hover {
+            background: var(--accent);
+            color: #0b0f19;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+        }
+
+        .btn-run {
+            background: linear-gradient(135deg, var(--cyan), #0891b2);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-run:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
+        }
+
+        .badge-step {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--primary);
+            padding: 5px 12px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            margin-bottom: 12px;
+            display: inline-block;
+        }
+
+        .badge-step.step2 {
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--cyan);
+            border-color: rgba(6, 182, 212, 0.2);
+        }
+
+        /* Console Terminal Styling */
+        .terminal-container {
+            margin-top: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
+        }
+
+        .terminal-header {
+            background: #111827;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .terminal-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background: var(--error); }
+        .dot-yellow { background: var(--accent); }
+        .dot-green { background: var(--success); }
+
+        .terminal-title {
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+
+        .terminal-body {
+            background: #030712;
+            height: 250px;
+            overflow-y: auto;
+            padding: 16px;
+            font-family: 'Fira Code', monospace;
+            font-size: 12.5px;
+            line-height: 1.6;
+            color: #10b981;
+        }
+
+        .terminal-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .terminal-body::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+
+        .log-entry {
+            margin-bottom: 6px;
+        }
+
+        .log-success { color: #10b981; }
+        .log-error { color: #ef4444; font-weight: 500; }
+        .log-info { color: #3b82f6; }
+        .log-warning { color: #f59e0b; }
+
+        .status-alert {
+            border-radius: 12px;
+            border: 1px solid;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .status-alert i {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .status-alert-success {
+            background: rgba(16, 185, 129, 0.08);
+            border-color: rgba(16, 185, 129, 0.2);
+            color: #d1fae5;
+        }
+
+        .status-alert-error {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #fee2e2;
+        }
+
+        .status-alert-info {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: rgba(59, 130, 246, 0.2);
+            color: #dbeafe;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quick-link-home {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text);
+            padding: 8px 18px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .quick-link-home:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 0.15em solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spinner-border .75s linear infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="/" class="quick-link-home">
+        <i class="bi bi-house-door-fill"></i> Back to Home Dashboard
+    </a>
+
+    <div class="container py-4">
+        <!-- Brand Header -->
+        <div class="text-center mb-5 mt-3">
+            <div class="header-logo"><i class="bi bi-database-fill-gear me-2"></i>RETAILWIZARD REPORTS</div>
+            <div class="subheader">Central Installation, Database Connection Configuration & Schema Setup Utility</div>
+        </div>
+
+        <div id="statusContainer"></div>
+
+        <div class="row g-4">
+            <!-- Left Side: Database Server Settings -->
+            <div class="col-lg-5">
+                <div class="glass-card h-100">
+                    <span class="badge-step">Step 1</span>
+                    <h4 class="mb-4 fw-bold"><i class="bi bi-hdd-network me-2 text-primary"></i>Server Connection</h4>
+                    
+                    <div class="mb-3">
+                        <label for="dbServer">SQL Server Address (Host\Instance,Port)</label>
+                        <input type="text" id="dbServer" class="form-control" value="{{ server }}" placeholder="e.g. 192.168.1.10\sqlexpress">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dbName">Database Name</label>
+                        <input type="text" id="dbName" class="form-control" value="{{ name }}" placeholder="RetailWizard">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dbUser">Database Username</label>
+                        <input type="text" id="dbUser" class="form-control" value="{{ user }}" placeholder="sysuser">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="dbPassword">Database Password</label>
+                        <div class="input-group">
+                            <input type="password" id="dbPassword" class="form-control" value="{{ password }}" placeholder="password">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePasswordBtn" style="border-color: rgba(255,255,255,0.08); border-top-right-radius: 10px; border-bottom-right-radius: 10px;">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <button id="testConnectionBtn" class="btn-setup btn-test">
+                                <span class="spinner-border spinner-border-sm d-none" id="testSpinner"></span>
+                                <i class="bi bi-wifi" id="testIcon"></i> Test Connection
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button id="saveConfigBtn" class="btn-setup btn-save">
+                                <span class="spinner-border spinner-border-sm d-none" id="saveSpinner"></span>
+                                <i class="bi bi-cloud-arrow-up" id="saveIcon"></i> Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: DB initialization / Script running -->
+            <div class="col-lg-7">
+                <div class="glass-card h-100">
+                    <span class="badge-step step2">Step 2</span>
+                    <h4 class="mb-4 fw-bold"><i class="bi bi-filetype-sql me-2 text-cyan"></i>Initialize & Execute Schema</h4>
+                    
+                    <div class="mb-4">
+                        <label for="sqlFileSelector">Select SQL Schema Script to Run</label>
+                        <select id="sqlFileSelector" class="form-select">
+                            <option value="">-- Choose SQL Script --</option>
+                            {% for sf in sql_files %}
+                                <option value="{{ sf.relative_path }}" {% if 'COMPLETE_ALL_VIEWS_RUN_THIS' in sf.name %}selected{% endif %}>{{ sf.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text text-muted mt-2">
+                            Select one of the pre-loaded view or table initialization scripts to build reports automatically.
+                        </div>
+                    </div>
+
+                    <button id="runSqlBtn" class="btn-setup btn-run mb-4">
+                        <span class="spinner-border spinner-border-sm d-none" id="runSpinner"></span>
+                        <i class="bi bi-play-circle" id="runIcon"></i> Execute Selected SQL Script
+                    </button>
+
+                    <!-- Interactive Logging Console -->
+                    <div class="terminal-container">
+                        <div class="terminal-header">
+                            <div class="terminal-dots">
+                                <div class="terminal-dot dot-red"></div>
+                                <div class="terminal-dot dot-yellow"></div>
+                                <div class="terminal-dot dot-green"></div>
+                            </div>
+                            <span class="terminal-title">Execution Logging Console</span>
+                            <button class="btn btn-sm py-0 text-muted" id="clearConsoleBtn" title="Clear Logs" style="font-size: 10px;"><i class="bi bi-trash"></i></button>
+                        </div>
+                        <div class="terminal-body" id="consoleBody">
+                            <div class="log-entry log-info">[SYSTEM] Installer Console Initialized.</div>
+                            <div class="log-entry log-info">[SYSTEM] Ready to deploy to: {{ server or 'Not Configured' }}.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Password toggler
+        const passwordField = document.getElementById('dbPassword');
+        const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+        togglePasswordBtn.addEventListener('click', function () {
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+            this.querySelector('i').classList.toggle('bi-eye');
+            this.querySelector('i').classList.toggle('bi-eye-slash');
+        });
+
+        // Console logger
+        const consoleBody = document.getElementById('consoleBody');
+        function addLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.innerText = `[${time}] ${message}`;
+            consoleBody.appendChild(entry);
+            consoleBody.scrollTop = consoleBody.scrollHeight;
+        }
+
+        document.getElementById('clearConsoleBtn').addEventListener('click', () => {
+            consoleBody.innerHTML = '<div class="log-entry log-info">[SYSTEM] Logs cleared. Ready.</div>';
+        });
+
+        // Status alert generator
+        const statusContainer = document.getElementById('statusContainer');
+        function showStatus(message, isSuccess = true) {
+            statusContainer.innerHTML = `
+                <div class="status-alert status-alert-${isSuccess ? 'success' : 'error'}">
+                    <i class="bi ${isSuccess ? 'bi-check-circle-fill text-success' : 'bi-exclamation-triangle-fill text-danger'}"></i>
+                    <div>
+                        <strong class="d-block">${isSuccess ? 'Success' : 'Error'}</strong>
+                        <span>${message}</span>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => {
+                const alert = statusContainer.querySelector('.status-alert');
+                if (alert) alert.style.opacity = '1';
+            }, 10);
+        }
+
+        // 1. Test Connection
+        document.getElementById('testConnectionBtn').addEventListener('click', function() {
+            const server = document.getElementById('dbServer').value;
+            const name = document.getElementById('dbName').value;
+            const user = document.getElementById('dbUser').value;
+            const password = document.getElementById('dbPassword').value;
+
+            // Loading state
+            const spinner = document.getElementById('testSpinner');
+            const icon = document.getElementById('testIcon');
+            this.disabled = true;
+            spinner.classList.remove('d-none');
+            icon.classList.add('d-none');
+
+            addLog(`Testing database connection to ${server}...`, 'info');
+
+            fetch('/setup/test-db', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ server, name, user, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.disabled = false;
+                spinner.classList.add('d-none');
+                icon.classList.remove('d-none');
+
+                if (data.success) {
+                    addLog(`Connection verified! SQL Server version: ${data.version}`, 'success');
+                    showStatus(`Successfully connected to SQL Server! ${data.version}`, true);
+                } else {
+                    addLog(`Connection failed! ${data.message}`, 'error');
+                    showStatus(data.message, false);
+                }
+            })
+            .catch(err => {
+                this.disabled = false;
+                spinner.classList.add('d-none');
+                icon.classList.remove('d-none');
+                addLog(`Network or backend communication error: ${err.message}`, 'error');
+                showStatus(err.message, false);
+            });
+        });
+
+        // 2. Save Configuration
+        document.getElementById('saveConfigBtn').addEventListener('click', function() {
+            const server = document.getElementById('dbServer').value;
+            const name = document.getElementById('dbName').value;
+            const user = document.getElementById('dbUser').value;
+            const password = document.getElementById('dbPassword').value;
+
+            // Loading state
+            const spinner = document.getElementById('saveSpinner');
+            const icon = document.getElementById('saveIcon');
+            this.disabled = true;
+            spinner.classList.remove('d-none');
+            icon.classList.add('d-none');
+
+            addLog('Saving database connection parameters to db_config.json...', 'info');
+
+            fetch('/setup/save-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ server, name, user, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.disabled = false;
+                spinner.classList.add('d-none');
+                icon.classList.remove('d-none');
+
+                if (data.success) {
+                    addLog('Connection settings saved successfully!', 'success');
+                    showStatus('Connection settings updated dynamically! All reports will now fetch data from this connection.', true);
+                } else {
+                    addLog(`Failed to save settings: ${data.message}`, 'error');
+                    showStatus(data.message, false);
+                }
+            })
+            .catch(err => {
+                this.disabled = false;
+                spinner.classList.add('d-none');
+                icon.classList.remove('d-none');
+                addLog(`Error saving config: ${err.message}`, 'error');
+                showStatus(err.message, false);
+            });
+        });
+
+        // 3. Run SQL schema script
+        document.getElementById('runSqlBtn').addEventListener('click', function() {
+            const server = document.getElementById('dbServer').value;
+            const name = document.getElementById('dbName').value;
+            const user = document.getElementById('dbUser').value;
+            const password = document.getElementById('dbPassword').value;
+            const file_path = document.getElementById('sqlFileSelector').value;
+
+            if (!file_path) {
+                addLog('Validation failed: No SQL script selected!', 'warning');
+                alert('Please select a SQL script to execute.');
+                return;
+            }
+
+            // Loading state
+            const spinner = document.getElementById('runSpinner');
+            const icon = document.getElementById('runIcon');
+            this.disabled = true;
+            spinner.classList.remove('d-none');
+            icon.classList.add('d-none');
+
+            addLog(`Executing SQL script: ${file_path} ...`, 'warning');
+            addLog('Connecting to SQL Server and preparing batch execution parser...', 'info');
+
+            fetch('/setup/run-sql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ server, name, user, password, file_path })
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.disabled = false;
+                spinner.classList.add('d-none');
+                icon.classList.remove('d-none');
+
+                if (data.success) {
+                    // Output logs from response
+                    if (data.logs && data.logs.length > 0) {
+                        data.logs.forEach(l => {
+                            if (l.startsWith('[OK]')) {
+                                addLog(l, 'success');
+                            } else if (l.startsWith('[ERROR]')) {
+                                addLog(l, 'error');
+                            } else {
+                                addLog(l, 'info');
+                            }
+                        });
+                    }
+                    
+                    addLog(`Execution completed: ${data.success_count} succeeded, ${data.error_count} failed.`, data.error_count === 0 ? 'success' : 'error');
+                    
+                    // Highly requested optimization: If any batch failed, print an immediate Summary of Errors at the bottom of the console log
+                    if (data.error_count > 0) {
+                        addLog('----------------------------------------------------------------------', 'warning');
+                        addLog(`SUMMARY OF ERRORS (${data.error_count} FAILED BATCHES):`, 'error');
+                        data.logs.forEach(l => {
+                            if (l.startsWith('[ERROR]')) {
+                                addLog(l, 'error');
+                            }
+                        });
+                        addLog('----------------------------------------------------------------------', 'warning');
+                    }
+                    
+                    showStatus(data.message, data.error_count === 0);
+                } else {
+                    addLog(`Script execution failed completely: ${data.message}`, 'error');
+                    showStatus(data.message, false);
+                }
+            })
+            .catch(err => {
+                this.disabled = false;
+                spinner.classList.add('d-none');
+                icon.classList.remove('d-none');
+                addLog(`Error running SQL script: ${err.message}`, 'error');
+                showStatus(err.message, false);
+            });
+        });
+    </script>
+</body>
+</html>

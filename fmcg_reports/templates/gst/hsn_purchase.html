@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}HSN Purchase Report{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-file-earmark-bar-graph"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?year={{ year }}&month={{ month }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','HSN Purchase')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Year</label>
+      <select name="year" class="form-select form-select-sm">{% for y in range(2022,2028) %}<option value="{{ y }}" {% if year==y|string %}selected{% endif %}>{{ y }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Month</label>
+      <select name="month" class="form-select form-select-sm">{% for m in range(1,13) %}<option value="{{ m }}" {% if month==m|string %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Filter</button></div>
+  </form>
+</div>
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total GRNs</div><div class="kpi-val">{{ df['GRN_COUNT'].sum()|int }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Taxable Value</div><div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['TAXABLE_VALUE'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Tax (ITC)</div><div class="kpi-val text-primary">₹{{ "{:,.0f}".format(df['TOTAL_TAX'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Eligible ITC</div><div class="kpi-val text-success">₹{{ "{:,.0f}".format(df[df['ITC_STATUS']=='ELIGIBLE']['TOTAL_TAX'].sum()) }}</div></div></div>
+</div>
+{% endif %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between"><span><i class="bi bi-table"></i> HSN Wise Purchase</span><span class="badge bg-light text-dark">{{ df|length }} HSN codes</span></div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead><tr>
+          <th>HSN Code</th><th>UOM</th><th>Supplier</th><th>Supplier GSTIN</th>
+          <th class="text-end">GRNs</th><th class="text-end">Qty</th>
+          <th class="text-end">Taxable (₹)</th><th class="text-end">CGST (₹)</th>
+          <th class="text-end">SGST (₹)</th><th class="text-end">Cess (₹)</th>
+          <th class="text-end">Total Tax (₹)</th><th class="text-end">Rate%</th><th>ITC Status</th>
+        </tr></thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          <tr>
+            <td class="fw-bold">{{ row.HSN_CODE }}</td><td>{{ row.UOM }}</td>
+            <td>{{ row.SUPPLIER_NAME }}</td>
+            <td class="text-muted small">{{ row.SUPPLIER_GSTIN or '—' }}</td>
+            <td class="text-end">{{ row.GRN_COUNT }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.TOTAL_QTY) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.TAXABLE_VALUE) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.CGST_AMT) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.SGST_AMT) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.CESS_AMT) }}</td>
+            <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(row.TOTAL_TAX) }}</td>
+            <td class="text-end">{{ "{:.0f}".format(row.GST_RATE) }}%</td>
+            <td><span class="badge {% if row.ITC_STATUS=='ELIGIBLE' %}bg-success{% else %}bg-danger{% endif %}">{{ row.ITC_STATUS }}</span></td>
+          </tr>
+          {% else %}<tr><td colspan="13" class="text-center text-muted py-4">No data found</td></tr>{% endfor %}
+        </tbody>
+        {% if not df.empty %}
+        <tfoot class="table-secondary fw-bold"><tr>
+          <td colspan="4">TOTAL</td>
+          <td class="text-end">{{ df['GRN_COUNT'].sum()|int }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['TOTAL_QTY'].sum()) }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['TAXABLE_VALUE'].sum()) }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['CGST_AMT'].sum()) }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['SGST_AMT'].sum()) }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['CESS_AMT'].sum()) }}</td>
+          <td class="text-end text-primary">{{ "{:,.2f}".format(df['TOTAL_TAX'].sum()) }}</td>
+          <td colspan="2"></td>
+        </tr></tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

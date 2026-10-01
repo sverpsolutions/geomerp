@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+{% block title %}Advanced Stock Transfer Report{% endblock %}
+
+{% block content %}
+<style>
+  .col-in     { color:#198754; font-weight:700; }
+  .col-out    { color:#dc3545; font-weight:700; }
+  .col-net    { color:#0d6efd; font-weight:700; }
+  .kpi-in     { border-left:4px solid #198754; }
+  .kpi-out    { border-left:4px solid #dc3545; }
+  .kpi-net    { border-left:4px solid #0d6efd; }
+  .kpi-val-in { border-left:4px solid #0f766e; }
+  .tbl-head   { background:#0f766e; color:#fff; position:sticky; top:0; z-index:1; }
+  .tbl-foot   { background:#d1fae5; font-weight:700; }
+  th, td      { white-space:nowrap; }
+  .badge-in   { background:#198754; color:#fff; font-size:10px; padding:2px 7px; border-radius:10px; }
+  .badge-out  { background:#dc3545; color:#fff; font-size:10px; padding:2px 7px; border-radius:10px; }
+  .row-in     { border-left:3px solid #198754; }
+  .row-out    { border-left:3px solid #dc3545; }
+</style>
+
+<!-- ─── Topbar ─────────────────────────────────────────────────── -->
+<div class="topbar">
+  <h5><i class="bi bi-arrow-left-right me-2"></i>{{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?from_date={{ from_date }}&to_date={{ to_date }}&from_loc={{ from_loc }}&to_loc={{ to_loc }}&category={{ category }}&mtn_type={{ mtn_type }}&export=excel"
+       class="btn btn-export-excel btn-sm">
+      <i class="bi bi-file-excel me-1"></i>Excel
+    </a>
+    <a href="?from_date={{ from_date }}&to_date={{ to_date }}&from_loc={{ from_loc }}&to_loc={{ to_loc }}&category={{ category }}&mtn_type={{ mtn_type }}&export=pdf"
+       class="btn btn-export-pdf btn-sm">
+      <i class="bi bi-file-pdf me-1"></i>PDF
+    </a>
+  </div>
+</div>
+
+<!-- ─── KPI Row ───────────────────────────────────────────────── -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-2">
+    <div class="kpi-card kpi-in">
+      <div class="kpi-lbl">Stock IN (Qty)</div>
+      <div class="kpi-val col-in">{{ "{:,.0f}".format(kpi.total_in) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="kpi-card kpi-out">
+      <div class="kpi-lbl">Stock OUT (Qty)</div>
+      <div class="kpi-val col-out">{{ "{:,.0f}".format(kpi.total_out) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="kpi-card kpi-net">
+      <div class="kpi-lbl">Net Movement</div>
+      <div class="kpi-val col-net">
+        {% if kpi.net_movement >= 0 %}+{% endif %}{{ "{:,.0f}".format(kpi.net_movement) }}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="kpi-card kpi-val-in">
+      <div class="kpi-lbl">Value IN (₹)</div>
+      <div class="kpi-val col-in">₹{{ "{:,.0f}".format(kpi.value_in) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="kpi-card kpi-out">
+      <div class="kpi-lbl">Value OUT (₹)</div>
+      <div class="kpi-val col-out">₹{{ "{:,.0f}".format(kpi.value_out) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="kpi-card" style="border-left:4px solid #6d28d9">
+      <div class="kpi-lbl">Total Transactions</div>
+      <div class="kpi-val" style="color:#6d28d9">{{ kpi.transactions }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Filters ──────────────────────────────────────────────── -->
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">From Date</label>
+      <input type="date" name="from_date" value="{{ from_date }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">To Date</label>
+      <input type="date" name="to_date" value="{{ to_date }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">From Location</label>
+      <select name="from_loc" class="form-select form-select-sm" style="min-width:140px">
+        <option value="">All Locations</option>
+        {% for l in locations %}
+        <option value="{{ l }}" {% if from_loc==l %}selected{% endif %}>{{ l }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">To Location</label>
+      <select name="to_loc" class="form-select form-select-sm" style="min-width:140px">
+        <option value="">All Locations</option>
+        {% for l in locations %}
+        <option value="{{ l }}" {% if to_loc==l %}selected{% endif %}>{{ l }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">Category</label>
+      <select name="category" class="form-select form-select-sm" style="min-width:130px">
+        <option value="">All Categories</option>
+        {% for c in categories %}
+        <option value="{{ c }}" {% if category==c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">Type</label>
+      <select name="mtn_type" class="form-select form-select-sm">
+        <option value="">All Types</option>
+        <option value="I" {% if mtn_type=='I' %}selected{% endif %}>Transfer In (I)</option>
+        <option value="O" {% if mtn_type=='O' %}selected{% endif %}>Transfer Out (O)</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-sm" style="background:#0f766e;color:#fff">
+        <i class="bi bi-search me-1"></i>Load
+      </button>
+      <a href="/adv/stock-transfer" class="btn btn-outline-secondary btn-sm ms-1">
+        <i class="bi bi-x-circle me-1"></i>Reset
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- ─── Legend ───────────────────────────────────────────────── -->
+<div class="d-flex gap-3 mb-3 small">
+  <span><span class="badge-in">IN</span> &nbsp;Stock received at location</span>
+  <span><span class="badge-out">OUT</span> &nbsp;Stock dispatched from location</span>
+  <span class="text-muted">
+    <i class="bi bi-table me-1"></i>
+    {% if not df.empty %}{{ df|length }} records found{% else %}No records{% endif %}
+  </span>
+</div>
+
+<!-- ─── Main Table ────────────────────────────────────────────── -->
+{% if df.empty %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle me-2"></i>
+  No stock transfer data found for the selected filters and date range.
+</div>
+{% else %}
+<div class="table-responsive" style="max-height:560px;overflow-y:auto">
+  <table class="table table-hover table-bordered table-sm small mb-0">
+    <thead class="tbl-head">
+      <tr>
+        <th>Date</th>
+        <th>MTN No</th>
+        <th>Type</th>
+        <th>From Location</th>
+        <th>To Location</th>
+        <th>Item Code</th>
+        <th>Item Name</th>
+        <th>Category</th>
+        <th>Brand</th>
+        <th class="text-end">Qty</th>
+        <th class="text-end">Cost Price</th>
+        <th class="text-end">MRP</th>
+        <th class="text-end" style="color:#90ee90">Stock IN</th>
+        <th class="text-end" style="color:#ffaaaa">Stock OUT</th>
+        <th class="text-end" style="color:#90ee90">Value IN (₹)</th>
+        <th class="text-end" style="color:#ffaaaa">Value OUT (₹)</th>
+        <th>Vehicle</th>
+        <th>Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for _, row in df.iterrows() %}
+      <tr class="{% if row.MTN_TYPE == 'I' %}row-in{% else %}row-out{% endif %}">
+        <td>{{ row.TRANS_DATE }}</td>
+        <td class="text-muted small">{{ row.MTN_NO }}</td>
+        <td>
+          {% if row.MTN_TYPE == 'I' %}
+            <span class="badge-in">IN</span>
+          {% else %}
+            <span class="badge-out">OUT</span>
+          {% endif %}
+        </td>
+        <td>{{ row.FROM_LOCATION }}</td>
+        <td>{{ row.TO_LOCATION }}</td>
+        <td class="small">{{ row.ITEM_CODE }}</td>
+        <td>{{ row.ITEM_NAME }}</td>
+        <td class="text-muted small">{{ row.CATEGORY }}</td>
+        <td class="text-muted small">{{ row.BRAND }}</td>
+        <td class="text-end">{{ row.QTY|int if row.QTY is not none else 0 }}</td>
+        <td class="text-end">{{ "{:,.2f}".format(row.COST_PRICE|float) }}</td>
+        <td class="text-end">{{ "{:,.2f}".format(row.MRP|float) }}</td>
+        <td class="text-end col-in">
+          {% if row.STOCK_IN and row.STOCK_IN > 0 %}
+            <strong>{{ row.STOCK_IN|int }}</strong>
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-end col-out">
+          {% if row.STOCK_OUT and row.STOCK_OUT > 0 %}
+            <strong>{{ row.STOCK_OUT|int }}</strong>
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-end col-in">
+          {% if row.VALUE_IN and row.VALUE_IN > 0 %}₹{{ "{:,.2f}".format(row.VALUE_IN|float) }}
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-end col-out">
+          {% if row.VALUE_OUT and row.VALUE_OUT > 0 %}₹{{ "{:,.2f}".format(row.VALUE_OUT|float) }}
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-muted small">{{ row.VEHICLE_NO }}</td>
+        <td class="text-muted small">{{ row.REMARKS[:30] ~ '…' if row.REMARKS|length > 30 else row.REMARKS }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot class="tbl-foot">
+      <tr>
+        <td colspan="9">TOTAL ({{ df|length }} rows)</td>
+        <td class="text-end">{{ df.QTY.sum()|int }}</td>
+        <td colspan="2"></td>
+        <td class="text-end col-in">{{ df.STOCK_IN.sum()|int }}</td>
+        <td class="text-end col-out">{{ df.STOCK_OUT.sum()|int }}</td>
+        <td class="text-end col-in">₹{{ "{:,.2f}".format(df.VALUE_IN.sum()) }}</td>
+        <td class="text-end col-out">₹{{ "{:,.2f}".format(df.VALUE_OUT.sum()) }}</td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- ─── Location Summary ─────────────────────────────────────── -->
+{% if not df.empty %}
+<div class="row mt-4 g-3">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header" style="background:#0f766e;color:#fff">
+        <i class="bi bi-bar-chart me-2"></i>Movement by Location
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-bordered small mb-0">
+          <thead style="background:#f4a621;color:#000;font-weight:700">
+            <tr>
+              <th>From Location</th>
+              <th class="text-end col-out">Total OUT (Qty)</th>
+              <th class="text-end col-out">Value OUT (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for loc, grp in df.groupby('FROM_LOCATION') %}
+            {% if loc %}
+            <tr>
+              <td>{{ loc }}</td>
+              <td class="text-end col-out">{{ grp.STOCK_OUT.sum()|int }}</td>
+              <td class="text-end col-out">₹{{ "{:,.2f}".format(grp.VALUE_OUT.sum()) }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header" style="background:#198754;color:#fff">
+        <i class="bi bi-bar-chart me-2"></i>Receipts by Location
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-bordered small mb-0">
+          <thead style="background:#f4a621;color:#000;font-weight:700">
+            <tr>
+              <th>To Location</th>
+              <th class="text-end col-in">Total IN (Qty)</th>
+              <th class="text-end col-in">Value IN (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for loc, grp in df.groupby('TO_LOCATION') %}
+            {% if loc %}
+            <tr>
+              <td>{{ loc }}</td>
+              <td class="text-end col-in">{{ grp.STOCK_IN.sum()|int }}</td>
+              <td class="text-end col-in">₹{{ "{:,.2f}".format(grp.VALUE_IN.sum()) }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

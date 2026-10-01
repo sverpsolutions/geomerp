@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}ITC Report{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-receipt-cutoff"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?year={{ year }}&month={{ month }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','ITC Report')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Year</label>
+      <select name="year" class="form-select form-select-sm">{% for y in range(2022,2028) %}<option value="{{ y }}" {% if year==y|string %}selected{% endif %}>{{ y }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Month</label>
+      <select name="month" class="form-select form-select-sm">{% for m in range(1,13) %}<option value="{{ m }}" {% if month==m|string %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Generate</button></div>
+  </form>
+</div>
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total GRNs</div><div class="kpi-val">{{ df['GRN_NO'].nunique() }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Eligible ITC</div><div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['ELIGIBLE_ITC'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Ineligible ITC</div><div class="kpi-val text-danger">₹{{ "{:,.0f}".format(df['INELIGIBLE_ITC'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Input Tax</div><div class="kpi-val text-primary">₹{{ "{:,.0f}".format(df['TOTAL_TAX'].sum()) }}</div></div></div>
+</div>
+{% endif %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between"><span><i class="bi bi-table"></i> ITC Detail</span><span class="badge bg-light text-dark">{{ df|length }} records</span></div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead><tr>
+          <th>GRN Date</th><th>GRN#</th><th>Supplier Invoice</th><th>Supplier</th>
+          <th>Supplier GSTIN</th><th class="text-end">Taxable (₹)</th>
+          <th class="text-end">CGST (₹)</th><th class="text-end">SGST (₹)</th>
+          <th class="text-end">Total Tax (₹)</th><th>ITC Status</th>
+          <th class="text-end">Eligible (₹)</th><th class="text-end">Ineligible (₹)</th>
+        </tr></thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          <tr class="{% if row.ITC_ELIGIBILITY=='ELIGIBLE' %}{% else %}table-danger bg-opacity-10{% endif %}">
+            <td>{{ row.GRN_DATE }}</td><td>{{ row.GRN_NO }}</td>
+            <td>{{ row.SUPPLIER_INVOICE or '—' }}</td>
+            <td class="fw-bold">{{ row.SUPPLIER_NAME }}</td>
+            <td class="text-muted small">{{ row.SUPPLIER_GSTIN or '❌ Missing' }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.TAXABLE_VALUE) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.CGST_ITC) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.SGST_ITC) }}</td>
+            <td class="text-end fw-bold">{{ "{:,.2f}".format(row.TOTAL_TAX) }}</td>
+            <td><span class="badge {% if row.ITC_ELIGIBILITY=='ELIGIBLE' %}bg-success{% else %}bg-danger{% endif %}">{{ row.ITC_ELIGIBILITY }}</span></td>
+            <td class="text-end text-success fw-bold">{{ "{:,.2f}".format(row.ELIGIBLE_ITC) }}</td>
+            <td class="text-end text-danger">{{ "{:,.2f}".format(row.INELIGIBLE_ITC) }}</td>
+          </tr>
+          {% else %}<tr><td colspan="12" class="text-center text-muted py-4">No ITC data found</td></tr>{% endfor %}
+        </tbody>
+        {% if not df.empty %}
+        <tfoot class="table-secondary fw-bold"><tr>
+          <td colspan="5">TOTAL</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['TAXABLE_VALUE'].sum()) }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['CGST_ITC'].sum()) }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['SGST_ITC'].sum()) }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['TOTAL_TAX'].sum()) }}</td>
+          <td></td>
+          <td class="text-end text-success">{{ "{:,.2f}".format(df['ELIGIBLE_ITC'].sum()) }}</td>
+          <td class="text-end text-danger">{{ "{:,.2f}".format(df['INELIGIBLE_ITC'].sum()) }}</td>
+        </tr></tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

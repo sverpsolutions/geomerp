@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Promotions Generator{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-megaphone"></i> {{ title }}</h5>
+</div>
+
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Segment</label>
+      <select name="segment" class="form-select form-select-sm">
+        <option value="">All Segments</option>
+        {% for seg in ['CHAMPION','LOYAL','HIGH VALUE','AT RISK','INACTIVE','LOST','NEW CUSTOMER'] %}
+        <option value="{{ seg }}" {% if segment==seg %}selected{% endif %}>{{ seg }}</option>
+        {% endfor %}
+      </select></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Channel</label>
+      <select name="channel" class="form-select form-select-sm">
+        <option value="whatsapp" {% if channel=='whatsapp' %}selected{% endif %}>WhatsApp</option>
+        <option value="sms"      {% if channel=='sms' %}selected{% endif %}>SMS</option>
+        <option value="email"    {% if channel=='email' %}selected{% endif %}>Email</option>
+      </select></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Festival (optional)</label>
+      <select name="festival" class="form-select form-select-sm">
+        <option value="">None</option>
+        {% for f in ['Diwali','Holi','Eid','Christmas','New Year','Dussehra','Navratri','Onam'] %}
+        <option value="{{ f }}" {% if festival==f %}selected{% endif %}>{{ f }}</option>
+        {% endfor %}
+      </select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-magic"></i> Generate Messages</button></div>
+  </form>
+</div>
+
+{% if messages %}
+<div class="alert alert-success">
+  <i class="bi bi-check-circle"></i> Generated <strong>{{ messages|length }}</strong> personalized messages for {{ channel.upper() }}
+  &nbsp;|&nbsp; Segment: {{ segment or 'All' }}
+  {% if festival %} &nbsp;|&nbsp; Festival: {{ festival }}{% endif %}
+</div>
+
+<div class="row g-3">
+  {% for msg in messages %}
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center py-2">
+        <span>
+          <span class="badge {% if msg.segment=='INACTIVE' or msg.segment=='LOST' %}bg-danger{% elif msg.segment=='CHAMPION' or msg.segment=='LOYAL' %}bg-success{% else %}bg-primary{% endif %}">
+            {{ msg.segment }}
+          </span>
+          &nbsp;
+          <strong>{{ msg.get('customer_code','') }}</strong>
+        </span>
+        <span>
+          <span class="badge bg-light text-dark">
+            {% if channel=='whatsapp' %}<i class="bi bi-whatsapp" style="color:#25D366"></i>{% elif channel=='sms' %}<i class="bi bi-phone"></i>{% else %}<i class="bi bi-envelope"></i>{% endif %}
+            {{ channel.upper() }}
+          </span>
+          <span class="badge bg-light text-dark">{{ msg.get('template','') }}</span>
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="d-flex gap-2 mb-2">
+          {% if msg.mobile %}<small class="text-muted"><i class="bi bi-phone"></i> {{ msg.mobile }}</small>{% endif %}
+          {% if msg.email %}<small class="text-muted"><i class="bi bi-envelope"></i> {{ msg.email }}</small>{% endif %}
+        </div>
+        {% if msg.get('subject') %}
+        <div class="mb-1"><strong>Subject:</strong> <span class="text-primary">{{ msg.subject }}</span></div>
+        {% endif %}
+        <div class="p-2 rounded" style="background:#f7f9fc;font-size:12.5px;white-space:pre-line;border-left:3px solid #1a4e8f;max-height:160px;overflow-y:auto;">{{ msg.body }}</div>
+        <div class="d-flex gap-2 mt-2">
+          <button class="btn btn-outline-secondary btn-sm" onclick="navigator.clipboard.writeText(this.closest('.card').querySelector('div.p-2').textContent.trim())">
+            <i class="bi bi-clipboard"></i> Copy
+          </button>
+          {% if msg.mobile and channel in ['whatsapp','sms'] %}
+          <a href="https://wa.me/91{{ msg.mobile|replace(' ','') }}?text={{ msg.body|urlencode }}" target="_blank"
+             class="btn btn-sm" style="background:#25D366;color:#fff">
+            <i class="bi bi-whatsapp"></i> Send WhatsApp
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% elif df is defined and not df.empty %}
+<div class="alert alert-info"><i class="bi bi-info-circle"></i> {{ df|length }} customers loaded. Click <strong>Generate Messages</strong> to create personalized promotions.</div>
+{% else %}
+<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> No customers found for selected segment. Try "All Segments".</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}GSTR-3B Summary{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-shield-check"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?year={{ year }}&month={{ month }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <a href="?year={{ year }}&month={{ month }}&gstin=YOURGSTINHERE&export=json" class="btn btn-sm" style="background:#ff6b00;color:#fff"><i class="bi bi-download"></i> GST JSON</a>
+  </div>
+</div>
+
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Year</label>
+      <select name="year" class="form-select form-select-sm">
+        {% for y in range(2020,2027) %}<option value="{{ y }}" {% if year|int==y %}selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Month</label>
+      <select name="month" class="form-select form-select-sm">
+        {% for m in range(1,13) %}<option value="{{ m }}" {% if month|int==m %}selected{% endif %}>{{ m }}</option>{% endfor %}
+      </select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Load</button></div>
+  </form>
+</div>
+
+{% if not df.empty %}
+{% set row = df.iloc[0] %}
+<!-- GSTR-3B Layout matching actual form -->
+<div class="row g-3">
+  <!-- Table 3.1 -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header" style="background:#1a4e8f;color:#fff">
+        <i class="bi bi-table"></i> Table 3.1 – Outward & Reverse Charge Supplies
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-bordered table-sm mb-0">
+          <thead class="table-light"><tr><th>Nature</th><th class="text-end">Taxable (₹)</th><th class="text-end">IGST (₹)</th><th class="text-end">CGST (₹)</th><th class="text-end">SGST (₹)</th></tr></thead>
+          <tbody>
+            <tr><td>3.1(a) Outward taxable supplies</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.TAXABLE_OUTWARD) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.IGST_SALES) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.CGST_SALES) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.SGST_SALES) }}</td></tr>
+            <tr><td>3.1(c) Nil rated / exempt</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.NIL_RATED_SALES) }}</td>
+                <td class="text-end">0.00</td><td class="text-end">0.00</td><td class="text-end">0.00</td></tr>
+            <tr class="table-warning fw-bold"><td>Total Output Tax</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.TAXABLE_OUTWARD) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.IGST_SALES) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.CGST_SALES) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.SGST_SALES) }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table 4: ITC -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header" style="background:#198754;color:#fff">
+        <i class="bi bi-arrow-down-circle"></i> Table 4 – Input Tax Credit Available
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-bordered table-sm mb-0">
+          <thead class="table-light"><tr><th>ITC Type</th><th class="text-end">IGST (₹)</th><th class="text-end">CGST (₹)</th><th class="text-end">SGST (₹)</th></tr></thead>
+          <tbody>
+            <tr><td>4(A) ITC Available (Eligible)</td>
+                <td class="text-end">0.00</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.ITC_CGST) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.ITC_SGST) }}</td></tr>
+            <tr class="text-danger"><td>4(D) ITC Ineligible</td>
+                <td class="text-end">0.00</td>
+                <td class="text-end text-danger">{{ "{:,.2f}".format(row.ITC_INELIGIBLE/2) }}</td>
+                <td class="text-end text-danger">{{ "{:,.2f}".format(row.ITC_INELIGIBLE/2) }}</td></tr>
+            <tr class="table-success fw-bold"><td>Net ITC Eligible</td>
+                <td class="text-end">0.00</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.ITC_CGST) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.ITC_SGST) }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Net Liability -->
+  <div class="col-12">
+    <div class="card border-0" style="background:{% if row.NET_TAX_LIABILITY > 0 %}#fff3cd{% else %}#d1e7dd{% endif %}">
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-md-3">
+            <div class="kpi-lbl">Total Output Tax</div>
+            <div style="font-size:22px;font-weight:700;color:#dc3545">₹{{ "{:,.2f}".format(row.TOTAL_OUTPUT_TAX) }}</div>
+          </div>
+          <div class="col-md-3">
+            <div class="kpi-lbl">Less: ITC Eligible</div>
+            <div style="font-size:22px;font-weight:700;color:#198754">₹{{ "{:,.2f}".format(row.ITC_ELIGIBLE) }}</div>
+          </div>
+          <div class="col-md-3">
+            <div class="kpi-lbl">Less: Return Tax Credit</div>
+            <div style="font-size:22px;font-weight:700;color:#0d6efd">₹{{ "{:,.2f}".format(row.RETURN_TAX_CREDIT) }}</div>
+          </div>
+          <div class="col-md-3">
+            <div class="kpi-lbl fw-bold">NET TAX PAYABLE</div>
+            <div style="font-size:28px;font-weight:700;color:{% if row.NET_TAX_LIABILITY > 0 %}#dc3545{% else %}#198754{% endif %}">
+              ₹{{ "{:,.2f}".format(row.NET_TAX_LIABILITY) }}
+            </div>
+            {% if row.NET_TAX_LIABILITY < 0 %}
+            <small class="text-success">ITC Balance / Refund Available</small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="alert alert-warning mt-3"><i class="bi bi-exclamation-triangle"></i> No GST data found for selected month. Please check if sales data exists for this period.</div>
+{% endif %}
+{% endblock %}

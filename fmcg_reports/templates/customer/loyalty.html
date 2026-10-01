@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Loyalty Points{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-star"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?mobile={{ mobile }}&from_date={{ from_date }}&to_date={{ to_date }}&export=pdf"   class="btn btn-export-pdf btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+    <a href="?mobile={{ mobile }}&from_date={{ from_date }}&to_date={{ to_date }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','Loyalty Ledger')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Mobile Number (optional)</label>
+      <input type="tel" name="mobile" class="form-control form-control-sm" value="{{ mobile }}" placeholder="All Customers" style="width:160px"></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">From Date</label>
+      <input type="date" name="from_date" class="form-control form-control-sm" value="{{ from_date }}"></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">To Date</label>
+      <input type="date" name="to_date" class="form-control form-control-sm" value="{{ to_date }}"></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Filter</button></div>
+  </form>
+</div>
+
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Transactions</div><div class="kpi-val">{{ df|length }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Points Earned</div><div class="kpi-val text-success">{{ "{:,.0f}".format(df['POINTS_EARNED'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Points Redeemed</div><div class="kpi-val text-warning">{{ "{:,.0f}".format(df['POINTS_REDEEMED'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Redeem Value</div><div class="kpi-val text-danger">₹{{ "{:,.0f}".format(df['REDEEM_VALUE'].sum()) }}</div></div></div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span><i class="bi bi-table"></i> Loyalty Points Ledger</span>
+    <span class="badge bg-light text-dark">{{ df|length }} records</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead>
+          <tr>
+            <th>Date</th><th>Txn#</th><th>Customer</th><th>Mobile</th>
+            <th>Type</th><th class="text-end">Points Earned</th>
+            <th class="text-end">Earn Value (₹)</th>
+            <th class="text-end">Points Redeemed</th>
+            <th class="text-end">Redeem Value (₹)</th>
+            <th class="text-end">Bill Value (₹)</th>
+            <th>Dept</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          <tr>
+            <td>{{ row.TXN_DATE }}</td>
+            <td>{{ row.TRANSACTION_NO }}</td>
+            <td class="fw-bold">{{ row.CUSTOMER_NAME }}</td>
+            <td>{{ row.MOBILE or row.CUSTOMER_NAME or '-' }}</td>
+            <td>
+              <span class="badge {% if row.TXN_TYPE == 'SAL' %}bg-success{% elif row.TXN_TYPE == 'RED' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                {{ row.TXN_TYPE }}
+              </span>
+            </td>
+            <td class="text-end text-success">{{ "{:,.0f}".format(row.POINTS_EARNED) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.EARN_VALUE) }}</td>
+            <td class="text-end text-warning">{{ "{:,.0f}".format(row.POINTS_REDEEMED) }}</td>
+            <td class="text-end text-danger">{{ "{:,.2f}".format(row.REDEEM_VALUE) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.BILL_VALUE) }}</td>
+            <td>{{ row.DEPT_CODE }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="11" class="text-center text-muted py-4">No loyalty records found</td></tr>
+          {% endfor %}
+        </tbody>
+        {% if not df.empty %}
+        <tfoot class="table-secondary fw-bold">
+          <tr>
+            <td colspan="5">TOTAL</td>
+            <td class="text-end text-success">{{ "{:,.0f}".format(df['POINTS_EARNED'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['EARN_VALUE'].sum()) }}</td>
+            <td class="text-end text-warning">{{ "{:,.0f}".format(df['POINTS_REDEEMED'].sum()) }}</td>
+            <td class="text-end text-danger">{{ "{:,.2f}".format(df['REDEEM_VALUE'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['BILL_VALUE'].sum()) }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

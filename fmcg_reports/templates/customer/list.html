@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Customer List{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-people"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?vip={{ request.args.get('vip','') }}&export=pdf"   class="btn btn-export-pdf btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+    <a href="?vip={{ request.args.get('vip','') }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','Customer List')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">City</label>
+      <input type="text" name="city" class="form-control form-control-sm" value="{{ city }}" placeholder="All Cities"></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">VIP Only</label>
+      <select name="vip" class="form-select form-select-sm">
+        <option value="">All Customers</option>
+        <option value="1" {% if vip=='1' %}selected{% endif %}>VIP Only</option>
+      </select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Filter</button></div>
+  </form>
+</div>
+
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Customers</div><div class="kpi-val">{{ df|length }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">VIP Customers</div><div class="kpi-val text-warning">{{ df['IS_VIP'].sum()|int }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Sales Value</div><div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['TOTAL_VALUE'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Points Balance</div><div class="kpi-val text-primary">{{ "{:,.0f}".format(df['BALANCE_POINTS'].sum()) }}</div></div></div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span><i class="bi bi-table"></i> Customer Master</span>
+    <span class="badge bg-light text-dark">{{ df|length }} customers</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead>
+          <tr>
+            <th>Code</th><th>Name</th><th>Mobile</th><th>City</th>
+            <th>Card Type</th><th>VIP</th>
+            <th class="text-end">Transactions</th>
+            <th class="text-end">Total Value (₹)</th>
+            <th class="text-end">Points Bal</th>
+            <th>First Visit</th><th>Last Visit</th>
+            <th class="text-end">Avg Bill (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          <tr>
+            <td>{{ row.CUSTOMER_CODE }}</td>
+            <td class="fw-bold">{{ row.CUSTOMER_NAME }}</td>
+            <td>{{ row.MOBILE if row.MOBILE and row.MOBILE|string not in ('nan','None','') else '-' }}</td>
+            <td>{{ row.CITY if row.CITY and row.CITY|string not in ('nan','None','') else '-' }}</td>
+            <td><span class="badge bg-light text-dark">{{ row.CARD_TYPE or '-' }}</span></td>
+            <td class="text-center">
+              {% if row.IS_VIP %}<span class="badge bg-warning text-dark"><i class="bi bi-star-fill"></i> VIP</span>
+              {% else %}<span class="text-muted">-</span>{% endif %}
+            </td>
+            <td class="text-end">{{ row.TOTAL_TRANSACTIONS }}</td>
+            <td class="text-end text-success fw-bold">{{ "{:,.2f}".format(row.TOTAL_VALUE) }}</td>
+            <td class="text-end text-primary">{{ "{:,.0f}".format(row.BALANCE_POINTS) }}</td>
+            <td>{{ row.FIRST_VISIT or '-' }}</td>
+            <td>{{ row.LAST_VISIT or '-' }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.AVG_BILL_AMOUNT) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="12" class="text-center text-muted py-4">No customers found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

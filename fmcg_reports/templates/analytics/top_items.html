@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block title %}Top Selling Items{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-trophy"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?top_n={{ top_n }}&export=pdf"   class="btn btn-export-pdf btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+    <a href="?top_n={{ top_n }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','Top Items')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Show Top</label>
+      <select name="top_n" class="form-select form-select-sm">
+        <option value="10"  {% if top_n==10  %}selected{% endif %}>Top 10</option>
+        <option value="20"  {% if top_n==20  %}selected{% endif %}>Top 20</option>
+        <option value="50"  {% if top_n==50  %}selected{% endif %}>Top 50</option>
+        <option value="100" {% if top_n==100 %}selected{% endif %}>Top 100</option>
+      </select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Apply</button></div>
+  </form>
+</div>
+
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Items</div><div class="kpi-val">{{ df|length }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Sales</div><div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['TOTAL_SALES'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Qty Sold</div><div class="kpi-val text-primary">{{ "{:,.0f}".format(df['TOTAL_QTY_SOLD'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Gross Profit</div><div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['GROSS_PROFIT'].sum()) }}</div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-bar-chart-horizontal"></i> Top Items by Sales</div>
+      <div class="card-body"><canvas id="topChart" height="300"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-pie-chart"></i> Sales by Category</div>
+      <div class="card-body"><canvas id="catChart" height="300"></canvas></div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span><i class="bi bi-table"></i> Item Ranking</span>
+    <span class="badge bg-light text-dark">{{ df|length }} items</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead>
+          <tr>
+            <th>#</th><th>Item Name</th><th>Category</th><th>Brand</th>
+            <th class="text-end">Bills</th>
+            <th class="text-end">Qty Sold</th>
+            <th class="text-end">Total Sales (₹)</th>
+            <th class="text-end">Discount (₹)</th>
+            <th class="text-end">Gross Profit (₹)</th>
+            <th class="text-end">Avg Rate (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          {% set rank = loop.index %}
+          <tr>
+            <td>
+              {% if rank == 1 %}<span class="badge bg-warning text-dark">🥇 1</span>
+              {% elif rank == 2 %}<span class="badge bg-secondary">🥈 2</span>
+              {% elif rank == 3 %}<span class="badge" style="background:#cd7f32;color:white">🥉 3</span>
+              {% else %}<span class="text-muted">{{ rank }}</span>{% endif %}
+            </td>
+            <td class="fw-bold">{{ row.ITEM_NAME }}</td>
+            <td><span class="badge bg-light text-dark">{{ row.CATEGORY or '-' }}</span></td>
+            <td>{{ row.BRAND or '-' }}</td>
+            <td class="text-end">{{ row.BILL_COUNT }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.TOTAL_QTY_SOLD) }}</td>
+            <td class="text-end fw-bold text-success">{{ "{:,.2f}".format(row.TOTAL_SALES) }}</td>
+            <td class="text-end text-warning">{{ "{:,.2f}".format(row.TOTAL_DISCOUNT) }}</td>
+            <td class="text-end text-primary">{{ "{:,.2f}".format(row.GROSS_PROFIT) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.AVG_RATE) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="10" class="text-center text-muted py-4">No data found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if not df.empty %}
+<script>
+const top10 = {{ df.head(10)[['ITEM_NAME','TOTAL_SALES']].to_dict('records')|tojson }};
+new Chart(document.getElementById('topChart'), {
+  type: 'bar',
+  data: {
+    labels: top10.map(r => r.ITEM_NAME.length > 20 ? r.ITEM_NAME.substring(0,20)+'...' : r.ITEM_NAME),
+    datasets: [{
+      data: top10.map(r => r.TOTAL_SALES),
+      backgroundColor: '#1a4e8f', borderRadius: 4
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: { x: { ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } } }
+  }
+});
+
+const catData = {{ df.groupby('CATEGORY')['TOTAL_SALES'].sum().to_dict()|tojson }};
+new Chart(document.getElementById('catChart'), {
+  type: 'doughnut',
+  data: {
+    labels: Object.keys(catData),
+    datasets: [{
+      data: Object.values(catData),
+      backgroundColor: ['#1a4e8f','#f4a621','#198754','#dc3545','#6f42c1','#0dcaf0','#fd7e14','#20c997'],
+      borderWidth: 2, borderColor: '#fff'
+    }]
+  },
+  options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } }, cutout: '55%' }
+});
+</script>
+{% endif %}
+{% endblock %}

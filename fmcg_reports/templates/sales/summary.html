@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Sales Summary{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-receipt"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?from_date={{ from_date }}&to_date={{ to_date }}&export=pdf"   class="btn btn-export-pdf   btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+    <a href="?from_date={{ from_date }}&to_date={{ to_date }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','Sales Summary')">
+      <i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1">From Date</label>
+      <input type="date" name="from_date" class="form-control form-control-sm" value="{{ from_date }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1">To Date</label>
+      <input type="date" name="to_date" class="form-control form-control-sm" value="{{ to_date }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1">Department</label>
+      <input type="text" name="dept" class="form-control form-control-sm" value="{{ dept }}" placeholder="All">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Filter</button>
+    </div>
+  </form>
+</div>
+
+{% if not df.empty %}
+<!-- KPI Row -->
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Total Bills</div>
+      <div class="kpi-val">{{ df['BILLS'].sum()|int }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Total Sales</div>
+      <div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['SALES'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Total Discount</div>
+      <div class="kpi-val text-warning">₹{{ "{:,.0f}".format(df['DISCOUNT'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Avg Bill Value</div>
+      <div class="kpi-val text-primary">₹{{ "{:,.0f}".format(df['AVG_BILL'].mean()) }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Table -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span><i class="bi bi-table"></i> Sales Summary</span>
+    <span class="badge bg-light text-dark">{{ df|length }} records</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead>
+          <tr>
+            <th>Date</th><th>Dept</th><th>Bills</th>
+            <th class="text-end">Sales (₹)</th>
+            <th class="text-end">Discount (₹)</th>
+            <th class="text-end">Avg Bill (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          <tr>
+            <td>{{ row.BILL_DATE }}</td>
+            <td>{{ row.DEPT_CODE }}</td>
+            <td class="text-center">{{ row.BILLS }}</td>
+            <td class="text-end fw-bold text-success">{{ "{:,.2f}".format(row.SALES) }}</td>
+            <td class="text-end text-warning">{{ "{:,.2f}".format(row.DISCOUNT) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.AVG_BILL) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No records found</td></tr>
+          {% endfor %}
+        </tbody>
+        {% if not df.empty %}
+        <tfoot class="table-secondary fw-bold">
+          <tr>
+            <td colspan="2">TOTAL</td>
+            <td class="text-center">{{ df['BILLS'].sum()|int }}</td>
+            <td class="text-end text-success">{{ "{:,.2f}".format(df['SALES'].sum()) }}</td>
+            <td class="text-end text-warning">{{ "{:,.2f}".format(df['DISCOUNT'].sum()) }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

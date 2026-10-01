@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Stock Valuation{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-currency-rupee"></i> Stock Valuation Report</h5>
+  <div class="d-flex gap-2">
+    <a href="?export=pdf"   class="btn btn-export-pdf btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+    <a href="?export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','Stock Valuation')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Items</div><div class="kpi-val">{{ df|length }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Value at Cost</div><div class="kpi-val text-danger">₹{{ "{:,.0f}".format(df['VALUE_AT_COST'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Value at MRP</div><div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['VALUE_AT_MRP'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Potential Profit</div><div class="kpi-val text-primary">₹{{ "{:,.0f}".format(df['POTENTIAL_PROFIT'].sum()) }}</div></div></div>
+</div>
+{% endif %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between"><span><i class="bi bi-table"></i> Stock Valuation (Items with Stock > 0)</span><span class="badge bg-light text-dark">{{ df|length }} items</span></div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead><tr>
+          <th>Item</th><th>Category</th><th>Brand</th><th>Supplier</th>
+          <th class="text-end">QOH</th><th class="text-end">Cost (₹)</th>
+          <th class="text-end">MRP (₹)</th><th class="text-end">SP (₹)</th>
+          <th class="text-end">Val@Cost (₹)</th><th class="text-end">Val@MRP (₹)</th>
+          <th class="text-end">Pot.Profit (₹)</th><th>Expiry</th>
+        </tr></thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          <tr>
+            <td class="fw-bold">{{ row.ITEM_NAME }}</td>
+            <td><span class="badge bg-light text-dark">{{ row.CATEGORY or '—' }}</span></td>
+            <td>{{ row.BRAND or '—' }}</td><td>{{ row.SUPPLIER_NAME or '—' }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.QTY_ON_HAND) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.COST_PRICE) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.MRP) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.SALE_PRICE) }}</td>
+            <td class="text-end text-danger">{{ "{:,.2f}".format(row.VALUE_AT_COST) }}</td>
+            <td class="text-end text-success">{{ "{:,.2f}".format(row.VALUE_AT_MRP) }}</td>
+            <td class="text-end text-primary fw-bold">{{ "{:,.2f}".format(row.POTENTIAL_PROFIT) }}</td>
+            <td><span class="badge {% if row.EXPIRY_STATUS=='EXPIRED' %}bg-danger{% elif row.EXPIRY_STATUS=='EXPIRING SOON' %}bg-warning text-dark{% else %}bg-light text-dark{% endif %}">{{ row.EXPIRY_STATUS }}</span></td>
+          </tr>
+          {% else %}<tr><td colspan="12" class="text-center text-muted py-4">No data</td></tr>{% endfor %}
+        </tbody>
+        {% if not df.empty %}
+        <tfoot class="table-secondary fw-bold"><tr>
+          <td colspan="4">TOTAL</td>
+          <td></td><td colspan="3"></td>
+          <td class="text-end text-danger">{{ "{:,.2f}".format(df['VALUE_AT_COST'].sum()) }}</td>
+          <td class="text-end text-success">{{ "{:,.2f}".format(df['VALUE_AT_MRP'].sum()) }}</td>
+          <td class="text-end text-primary">{{ "{:,.2f}".format(df['POTENTIAL_PROFIT'].sum()) }}</td>
+          <td></td>
+        </tr></tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

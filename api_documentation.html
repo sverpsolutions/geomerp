@@ -1,0 +1,291 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>API Documentation</title>
+<style>
+  body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; color: #333; }
+  h1, h2, h3 { color: #222; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+  pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+  code { font-family: Consolas, monospace; background: #f4f4f4; padding: 2px 4px; border-radius: 3px; }
+  blockquote { border-left: 4px solid #ccc; margin: 0; padding-left: 10px; color: #666; }
+</style>
+</head>
+<body>
+<h1>API Documentation for Integration: Products &amp; Suppliers</h1>
+<p>This documentation provides details for integrating external software with the Head Office (HO) backend for <strong>Product</strong> and <strong>Supplier</strong> entities. The API uses standard HTTP methods (GET, POST, PUT, DELETE) and JSON formatting. </p>
+<blockquote>
+<p>[!NOTE]
+All endpoints are prefixed with the base API URL (e.g., <code>https://api.modernbazaarho.local/api/v1</code>). Authentication is required for most endpoints, typically via a Bearer token in the <code>Authorization</code> header.</p>
+</blockquote>
+<hr />
+<h2>1. Product API Endpoints</h2>
+<p>The Product API allows you to manage product information, barcodes, and outlet-specific pricing.</p>
+<h3>Core Product Management</h3>
+<ul>
+<li>
+<p><strong>List Products</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>GET /products</code></li>
+<li><strong>Description:</strong> Retrieves a paginated list of products.</li>
+<li><strong>Query Parameters:</strong><ul>
+<li><code>page</code> (int, default: 1): Page number.</li>
+<li><code>per_page</code> (int, default: 50): Number of items per page.</li>
+<li><code>search</code> (string): Search by name, item code, or barcode.</li>
+<li><code>category_id</code>, <code>brand_id</code>, <code>classification_id</code> (int): Filter by specific IDs.</li>
+<li><code>is_active</code>, <code>is_expired</code>, <code>is_hidden_pos</code>, <code>low_stock</code> (boolean): Additional filters.</li>
+<li><code>status</code> (string): Status filter.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>Create Product</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>POST /products</code></li>
+<li><strong>Description:</strong> Creates a new product.</li>
+<li><strong>Body:</strong> JSON object containing product details (name, item_code, category_id, brand_id, etc.).</li>
+</ul>
+</li>
+<li>
+<p><strong>Get Product Details</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>GET /products/{product_id}</code></li>
+<li><strong>Description:</strong> Retrieves detailed information for a specific product.</li>
+</ul>
+</li>
+<li>
+<p><strong>Update Product</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>PUT /products/{product_id}</code></li>
+<li><strong>Description:</strong> Updates an existing product.</li>
+<li><strong>Body:</strong> JSON object containing the fields to update.</li>
+</ul>
+</li>
+<li>
+<p><strong>Delete/Deactivate Product</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>DELETE /products/{product_id}</code></li>
+<li><strong>Description:</strong> Deactivates a product (soft delete).</li>
+</ul>
+</li>
+</ul>
+<h3>Search and Barcode Lookup</h3>
+<ul>
+<li>
+<p><strong>Fast Search (QuickScan / Autocomplete)</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>GET /products/search</code></li>
+<li><strong>Description:</strong> Optimized search for POS or autocomplete fields.</li>
+<li><strong>Query Parameters:</strong> <code>q</code> (search string), <code>limit</code> (int, default: 20).</li>
+</ul>
+</li>
+<li>
+<p><strong>Lookup by Barcode</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>GET /products/lookup/barcode/{code}</code></li>
+<li><strong>Description:</strong> Finds a product exactly matching the given barcode or item code.</li>
+</ul>
+</li>
+<li>
+<p><strong>Get Product Barcodes</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>GET /products/{product_id}/barcodes</code></li>
+<li><strong>Description:</strong> Lists all barcodes associated with a product.</li>
+</ul>
+</li>
+<li>
+<p><strong>Generate/Add Barcode</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>POST /products/barcode/generate</code></li>
+<li><strong>Description:</strong> Adds a new barcode to a product or generates an EAN13 barcode.</li>
+<li><strong>Body:</strong> <code>{ "product_id": int, "barcode": string (optional), "barcode_type": string, "is_primary": boolean }</code></li>
+</ul>
+</li>
+<li>
+<p><strong>Delete Barcode</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>DELETE /products/barcode/{barcode_id}</code></li>
+<li><strong>Description:</strong> Removes a barcode (primary barcodes cannot be deleted without setting a new primary first).</li>
+</ul>
+</li>
+</ul>
+<h3>Pricing &amp; Activity</h3>
+<ul>
+<li>
+<p><strong>Get Outlet Pricing</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>GET /products/{product_id}/outlet-pricing</code></li>
+<li><strong>Description:</strong> Retrieves the pricing configured for this product across all active outlets.</li>
+</ul>
+</li>
+<li>
+<p><strong>Update Outlet Pricing</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>POST /products/{product_id}/outlet-pricing</code></li>
+<li><strong>Description:</strong> Updates pricing for specific outlets.</li>
+<li><strong>Body:</strong> Array of pricing objects <code>[{"outlet_id": int, "cost_price": float, "selling_price": float, ...}]</code></li>
+</ul>
+</li>
+<li>
+<p><strong>Get Product Activity</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>GET /products/{product_id}/activity</code></li>
+<li><strong>Description:</strong> Returns the stock and sales/purchase activity for the last 7 days.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>2. Supplier API Endpoints</h2>
+<p>The Supplier API handles vendor master data, onboarding, approvals, terms, and financial ledgers.</p>
+<h3>Core Supplier Management</h3>
+<ul>
+<li>
+<p><strong>List Suppliers</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>GET /suppliers</code></li>
+<li><strong>Description:</strong> Retrieves a paginated list of suppliers.</li>
+<li><strong>Query Parameters:</strong><ul>
+<li><code>page</code>, <code>per_page</code></li>
+<li><code>search</code> (string): Search by name, phone, GST, or code.</li>
+<li><code>registration_status</code> (string, default: "approved")</li>
+<li><code>pending_review</code> (boolean): If true, returns suppliers awaiting approval.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>Create Supplier</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>POST /suppliers</code></li>
+<li><strong>Description:</strong> Directly creates a new supplier (Admin/Manager role).</li>
+<li><strong>Body:</strong> JSON object including basic info, <code>addresses</code>, <code>contacts</code>, <code>legal</code>, <code>financial</code>, <code>brands</code>, etc.</li>
+</ul>
+</li>
+<li>
+<p><strong>Get Supplier Details</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>GET /suppliers/{supplier_id}</code></li>
+<li><strong>Description:</strong> Retrieves full details, including nested relationships (contacts, addresses, etc.).</li>
+</ul>
+</li>
+<li>
+<p><strong>Update Supplier</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>PUT /suppliers/{supplier_id}</code></li>
+<li><strong>Description:</strong> Updates supplier information and nested entities.</li>
+</ul>
+</li>
+<li>
+<p><strong>Delete/Deactivate Supplier</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>DELETE /suppliers/{supplier_id}</code></li>
+<li><strong>Description:</strong> Deactivates a supplier.</li>
+</ul>
+</li>
+</ul>
+<h3>Vendor Onboarding &amp; Registration (External Access)</h3>
+<ul>
+<li>
+<p><strong>Generate Onboarding Link</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>POST /suppliers/onboarding/link</code></li>
+<li><strong>Description:</strong> Generates a unique token for a vendor to self-register.</li>
+<li><strong>Query Parameters:</strong> <code>phone</code> (string), <code>name</code> (string).</li>
+</ul>
+</li>
+<li>
+<p><strong>Get Public Registration</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>GET /suppliers/public/registration/{token}</code></li>
+<li><strong>Description:</strong> Retrieves pending registration details via the public token.</li>
+</ul>
+</li>
+<li>
+<p><strong>Submit Public Registration</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>POST /suppliers/public/registration/{token}</code></li>
+<li><strong>Description:</strong> Vendor submits their registration details. Changes status to <code>submitted</code>.</li>
+</ul>
+</li>
+</ul>
+<h3>Approvals Workflow</h3>
+<ul>
+<li>
+<p><strong>Approve Supplier</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>POST /suppliers/{supplier_id}/approve</code></li>
+<li><strong>Description:</strong> Approves a pending vendor. Assigns a unique Supplier Code.</li>
+</ul>
+</li>
+<li>
+<p><strong>Reject Supplier</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>POST /suppliers/{supplier_id}/reject</code></li>
+<li><strong>Description:</strong> Rejects a vendor registration.</li>
+<li><strong>Body:</strong> <code>{ "remarks": "Reason for rejection" }</code></li>
+</ul>
+</li>
+<li>
+<p><strong>Hold Supplier</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>POST /suppliers/{supplier_id}/hold</code></li>
+<li><strong>Description:</strong> Places a vendor registration on hold.</li>
+</ul>
+</li>
+<li>
+<p><strong>Request Correction</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>POST /suppliers/{supplier_id}/request-correction</code></li>
+<li><strong>Description:</strong> Requests the vendor to correct specific fields.</li>
+</ul>
+</li>
+<li>
+<p><strong>Get Approval Logs</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>GET /suppliers/{supplier_id}/approval-logs</code></li>
+<li><strong>Description:</strong> Lists the history of approval actions.</li>
+</ul>
+</li>
+</ul>
+<h3>Financials &amp; Operations</h3>
+<ul>
+<li>
+<p><strong>Get Supplier Ledger</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>GET /suppliers/{supplier_id}/ledger</code></li>
+<li><strong>Description:</strong> Returns the financial ledger (opening balance, purchases, payments).</li>
+</ul>
+</li>
+<li>
+<p><strong>Get/Add/Delete Terms</strong></p>
+<ul>
+<li><strong>Endpoints:</strong><ul>
+<li><code>GET /suppliers/{supplier_id}/terms</code></li>
+<li><code>POST /suppliers/{supplier_id}/terms</code></li>
+<li><code>DELETE /suppliers/{supplier_id}/terms/{term_id}</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>List/Create Challans</strong></p>
+<ul>
+<li><strong>Endpoints:</strong><ul>
+<li><code>GET /suppliers/{supplier_id}/challans</code></li>
+<li><code>POST /suppliers/{supplier_id}/challans</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>Add Internal Note</strong></p>
+<ul>
+<li><strong>Endpoint:</strong> <code>POST /suppliers/{supplier_id}/notes</code></li>
+<li><strong>Description:</strong> Adds an internal note to the supplier's profile.</li>
+</ul>
+</li>
+</ul>
+</body>
+</html>

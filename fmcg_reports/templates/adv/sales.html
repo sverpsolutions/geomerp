@@ -1,0 +1,463 @@
+{% extends 'base.html' %}
+{% block title %}Advanced Sales Report{% endblock %}
+
+{% block content %}
+<style>
+/* ── Colour semantics ─────────────────────────────── */
+.c-sales   { color:#198754; font-weight:600; }
+.c-refund  { color:#dc3545; font-weight:600; }
+.c-net     { color:#0d6efd; font-weight:700; }
+.c-profit  { color:#f4a621; font-weight:600; }
+.c-disc    { color:#6c757d; }
+
+/* ── KPI cards ────────────────────────────────────── */
+.kpi-card { border-left-width:4px !important; }
+.kpi-s  { border-left-color:#198754 !important; }
+.kpi-r  { border-left-color:#dc3545 !important; }
+.kpi-n  { border-left-color:#0d6efd !important; }
+.kpi-p  { border-left-color:#f4a621 !important; }
+
+/* ── Group-by pill checkboxes ─────────────────────── */
+.gb-bar { display:flex; gap:6px; flex-wrap:wrap; }
+.gb-lbl {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:5px 12px; border-radius:20px; cursor:pointer; font-size:13px;
+  border:2px solid #dee2e6; background:#fff; transition:.15s;
+  user-select:none;
+}
+.gb-lbl:hover { border-color:#1a4e8f; color:#1a4e8f; }
+.gb-lbl.active {
+  background:#1a4e8f; color:#fff; border-color:#1a4e8f; font-weight:600;
+}
+
+/* ── Table ────────────────────────────────────────── */
+.tbl-head { background:#1a4e8f; color:#fff; position:sticky; top:0; z-index:2; }
+.tbl-foot { background:#dce8f8; font-weight:700; }
+.tbl-grp  { background:#f0f4ff; font-weight:700; font-size:12px;
+            border-left:4px solid #1a4e8f; }
+th, td    { white-space:nowrap; font-size:12px; }
+
+/* ── Type badges ──────────────────────────────────── */
+.badge-s { background:#198754; color:#fff; font-size:10px; padding:1px 6px; border-radius:10px; }
+.badge-r { background:#dc3545; color:#fff; font-size:10px; padding:1px 6px; border-radius:10px; }
+
+/* ── View toggle ──────────────────────────────────── */
+.vt-btn       { border-radius:6px; font-size:12px; }
+.vt-btn.active{ background:#1a4e8f !important; color:#fff !important;
+                border-color:#1a4e8f !important; }
+</style>
+
+{# ── Topbar ──────────────────────────────────────────────────────── #}
+<div class="topbar">
+  <h5><i class="bi bi-graph-up-arrow me-2"></i>{{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?{{ filter_qs }}&export=excel" class="btn btn-export-excel btn-sm">
+      <i class="bi bi-file-excel me-1"></i>Excel
+    </a>
+    <a href="?{{ filter_qs }}&export=pdf" class="btn btn-export-pdf btn-sm">
+      <i class="bi bi-file-pdf me-1"></i>PDF
+    </a>
+  </div>
+</div>
+
+{# ── KPI Row ─────────────────────────────────────────────────────── #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card card kpi-s shadow-sm">
+      <div class="card-body py-2 px-3">
+        <div class="kpi-lbl small text-muted">Net Sales</div>
+        <div class="kpi-val c-sales">₹{{ "{:,.0f}".format(kpi.total_sales) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card card kpi-r shadow-sm">
+      <div class="card-body py-2 px-3">
+        <div class="kpi-lbl small text-muted">Total Refund</div>
+        <div class="kpi-val c-refund">₹{{ "{:,.0f}".format(kpi.total_refund) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card card kpi-n shadow-sm">
+      <div class="card-body py-2 px-3">
+        <div class="kpi-lbl small text-muted">Net Total</div>
+        <div class="kpi-val c-net">₹{{ "{:,.0f}".format(kpi.net_total) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card card kpi-p shadow-sm">
+      <div class="card-body py-2 px-3">
+        <div class="kpi-lbl small text-muted">Gross Profit</div>
+        <div class="kpi-val c-profit">₹{{ "{:,.0f}".format(kpi.gross_profit) }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Filters ─────────────────────────────────────────────────────── #}
+<div class="filter-bar mb-3">
+  <form method="get" id="filterForm" class="row g-2 align-items-end">
+    <input type="hidden" name="view"     value="{{ view }}">
+    <input type="hidden" name="group_by" value="{{ group_by }}">
+
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">From</label>
+      <input type="date" name="from_date" value="{{ from_date }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">To</label>
+      <input type="date" name="to_date" value="{{ to_date }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">Category</label>
+      <select name="category" class="form-select form-select-sm" style="min-width:130px">
+        <option value="">All</option>
+        {% for c in categories %}
+        <option value="{{ c }}" {% if category==c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">Brand</label>
+      <select name="brand" class="form-select form-select-sm" style="min-width:120px">
+        <option value="">All</option>
+        {% for b in brands %}
+        <option value="{{ b }}" {% if brand==b %}selected{% endif %}>{{ b }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">Supplier</label>
+      <select name="supplier" class="form-select form-select-sm" style="min-width:130px">
+        <option value="">All</option>
+        {% for s in suppliers %}
+        <option value="{{ s }}" {% if supplier==s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">Item Search</label>
+      <input type="text" name="item_search" value="{{ item_search }}"
+             class="form-control form-control-sm" placeholder="Code / Name" style="width:130px">
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">Dept</label>
+      <input type="text" name="dept" value="{{ dept }}"
+             class="form-control form-control-sm" style="width:80px" placeholder="Dept">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-search me-1"></i>Load
+      </button>
+      <a href="/adv/sales" class="btn btn-outline-secondary btn-sm ms-1">
+        <i class="bi bi-x-circle"></i>
+      </a>
+    </div>
+  </form>
+</div>
+
+{# ── Group-by checkboxes + View toggle (same row) ────────────────── #}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+
+  {# Group-by pills — acts like radio buttons, submits form on click #}
+  <div class="gb-bar">
+    <span class="text-muted small fw-bold me-1">Group by:</span>
+    {% for key, opt in GROUP_BY_OPTIONS.items() %}
+    <a href="?{{ gb_qs[key] }}"
+       class="gb-lbl {% if group_by==key %}active{% endif %}">
+      <i class="bi {{ opt.icon }}"></i>{{ opt.label }}
+    </a>
+    {% endfor %}
+  </div>
+
+  {# Summary / Detail toggle #}
+  <div class="d-flex align-items-center gap-2">
+    <span class="text-muted small fw-bold">View:</span>
+    <a href="?{{ sum_qs }}" class="btn btn-sm vt-btn {% if view=='summary' %}active{% else %}btn-outline-primary{% endif %}">
+      <i class="bi bi-bar-chart me-1"></i>Summary
+    </a>
+    <a href="?{{ det_qs }}" class="btn btn-sm vt-btn {% if view=='detail' %}active{% else %}btn-outline-primary{% endif %}">
+      <i class="bi bi-list-ul me-1"></i>Detail
+    </a>
+    {% if not df.empty %}
+    <span class="text-muted small ms-1"><i class="bi bi-table me-1"></i>{{ df|length }} rows</span>
+    {% endif %}
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════
+   SUMMARY TABLE
+   Columns: [Dimension] | Sales Qty | Sales Amt | Disc | Net Sales
+             | Refund Qty | Refund Amt | Refund Disc | Net Total
+   ══════════════════════════════════════════════════════════════════ #}
+{% if df.empty %}
+<div class="alert alert-warning mt-2">
+  <i class="bi bi-exclamation-triangle me-2"></i>No data found for selected filters.
+</div>
+
+{% elif view == 'summary' %}
+<div class="table-responsive" style="max-height:520px;overflow-y:auto">
+  <table class="table table-hover table-bordered table-sm mb-0">
+    <thead class="tbl-head">
+      <tr>
+        {# Dimension column header(s) #}
+        {% if group_by == 'item' %}
+          <th>Item Code</th>
+          <th>Item Name</th>
+          <th>Category</th>
+          <th>Brand</th>
+        {% else %}
+          <th>{{ gbo.label }}</th>
+        {% endif %}
+
+        {# Financial headers — always same order #}
+        <th class="text-end" style="color:#90ee90">Sales Qty</th>
+        <th class="text-end" style="color:#90ee90">Sales Amt (₹)</th>
+        <th class="text-end" style="color:#ffcccc">Discount (₹)</th>
+        <th class="text-end" style="color:#aaffaa">Net Sales (₹)</th>
+        <th class="text-end" style="color:#ffaaaa">Refund Qty</th>
+        <th class="text-end" style="color:#ffaaaa">Refund Amt (₹)</th>
+        <th class="text-end" style="color:#ffcccc">Refund Disc (₹)</th>
+        <th class="text-end" style="color:#add8e6">Net Total (₹)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for _, row in df.iterrows() %}
+      <tr>
+        {# Dimension cell(s) #}
+        {% if group_by == 'item' %}
+          <td class="text-muted small">{{ row.ITEM_CODE }}</td>
+          <td>{{ row.ITEM_NAME }}</td>
+          <td class="text-muted small">{{ row.CATEGORY }}</td>
+          <td class="text-muted small">{{ row.BRAND }}</td>
+        {% elif group_by == 'category' %}
+          <td><strong>{{ row.CATEGORY }}</strong></td>
+        {% elif group_by == 'brand' %}
+          <td><strong>{{ row.BRAND }}</strong></td>
+        {% elif group_by == 'supplier' %}
+          <td><strong>{{ row.SUPPLIER_NAME }}</strong></td>
+        {% endif %}
+
+        {# Financial cells #}
+        <td class="text-end c-sales">{{ row.SALES_QTY|int if row.SALES_QTY is not none else 0 }}</td>
+        <td class="text-end c-sales">₹{{ "{:,.2f}".format(row.SALES_AMOUNT|float) }}</td>
+        <td class="text-end c-disc">
+          {% if row.DISC_AMOUNT and row.DISC_AMOUNT > 0 %}
+            ₹{{ "{:,.2f}".format(row.DISC_AMOUNT|float) }}
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-end c-sales">₹{{ "{:,.2f}".format(row.NET_SALES|float) }}</td>
+        <td class="text-end c-refund">
+          {% if row.REFUND_QTY and row.REFUND_QTY > 0 %}{{ row.REFUND_QTY|int }}{% else %}—{% endif %}
+        </td>
+        <td class="text-end c-refund">
+          {% if row.REFUND_AMOUNT and row.REFUND_AMOUNT > 0 %}
+            ₹{{ "{:,.2f}".format(row.REFUND_AMOUNT|float) }}
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-end c-disc">—</td>
+        <td class="text-end c-net fw-bold">₹{{ "{:,.2f}".format(row.NET_TOTAL|float) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot class="tbl-foot">
+      <tr>
+        {% if group_by == 'item' %}
+          <td colspan="4">TOTAL — {{ df|length }} {{ gbo.label }}s</td>
+        {% else %}
+          <td>TOTAL — {{ df|length }} {{ gbo.label }}s</td>
+        {% endif %}
+        <td class="text-end c-sales">{{ df.SALES_QTY.sum()|int }}</td>
+        <td class="text-end c-sales">₹{{ "{:,.2f}".format(df.SALES_AMOUNT.sum()) }}</td>
+        <td class="text-end c-disc">₹{{ "{:,.2f}".format(df.DISC_AMOUNT.sum()) }}</td>
+        <td class="text-end c-sales">₹{{ "{:,.2f}".format(df.NET_SALES.sum()) }}</td>
+        <td class="text-end c-refund">{{ df.REFUND_QTY.sum()|int }}</td>
+        <td class="text-end c-refund">₹{{ "{:,.2f}".format(df.REFUND_AMOUNT.sum()) }}</td>
+        <td class="text-end c-disc">—</td>
+        <td class="text-end c-net">₹{{ "{:,.2f}".format(df.NET_TOTAL.sum()) }}</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════
+   DETAIL TABLE
+   Grouped visually by the chosen dimension.
+   Within each group: Item Code | Item Name | Sales Qty | Sales Amt | Disc
+                       | Net Sales | Refund Qty | Refund Amt | Net Total
+   ══════════════════════════════════════════════════════════════════ #}
+{% else %}
+
+{# Determine which column to group rows by visually #}
+{% if group_by == 'category' %}   {% set grp_col = 'CATEGORY' %}
+{% elif group_by == 'brand' %}    {% set grp_col = 'BRAND' %}
+{% elif group_by == 'supplier' %} {% set grp_col = 'SUPPLIER_NAME' %}
+{% else %}                        {% set grp_col = 'ITEM_NAME' %}
+{% endif %}
+
+<div class="table-responsive" style="max-height:580px;overflow-y:auto">
+  <table class="table table-hover table-bordered table-sm mb-0">
+    <thead class="tbl-head">
+      <tr>
+        <th>Type</th>
+        <th>Date</th>
+        <th>Trans No</th>
+        <th>Item Code</th>
+        <th>Item Name</th>
+        {% if group_by != 'category' %}<th>Category</th>{% endif %}
+        {% if group_by != 'brand' %}   <th>Brand</th>{% endif %}
+        {% if group_by != 'supplier' %}<th>Supplier</th>{% endif %}
+        <th class="text-end">Qty</th>
+        <th class="text-end">Amount (₹)</th>
+        <th class="text-end">Discount (₹)</th>
+        <th class="text-end c-sales">Net Sales (₹)</th>
+        <th class="text-end c-refund">Refund (₹)</th>
+        <th class="text-end c-net">Net Total (₹)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {# Group rows by chosen dimension — track current group with ns #}
+      {% set ns = namespace(cur_grp='__NONE__',
+                            s_qty=0, s_amt=0, disc=0, n_sales=0,
+                            r_qty=0, r_amt=0, net=0) %}
+
+      {% for _, row in df.iterrows() %}
+        {# Get this row's group value #}
+        {% if group_by == 'category' %}   {% set this_grp = row.CATEGORY %}
+        {% elif group_by == 'brand' %}    {% set this_grp = row.BRAND %}
+        {% elif group_by == 'supplier' %} {% set this_grp = row.SUPPLIER_NAME %}
+        {% else %}                        {% set this_grp = row.ITEM_NAME %}
+        {% endif %}
+
+        {# Group header row when dimension changes #}
+        {% if this_grp != ns.cur_grp %}
+          {# Subtotal row for previous group (except very first) #}
+          {% if ns.cur_grp != '__NONE__' %}
+          <tr class="tbl-foot">
+            <td colspan="{% if group_by=='category' %}5{% elif group_by=='brand' %}5{% elif group_by=='supplier' %}5{% else %}4{% endif %}"
+                class="text-end">Subtotal — {{ ns.cur_grp }}</td>
+            <td class="text-end c-sales">{{ ns.s_qty }}</td>
+            <td class="text-end c-sales">₹{{ "{:,.2f}".format(ns.s_amt) }}</td>
+            <td class="text-end c-disc">₹{{ "{:,.2f}".format(ns.disc) }}</td>
+            <td class="text-end c-sales">₹{{ "{:,.2f}".format(ns.n_sales) }}</td>
+            <td class="text-end c-refund">{{ ns.r_qty }}</td>
+            <td class="text-end c-refund">₹{{ "{:,.2f}".format(ns.r_amt) }}</td>
+            <td class="text-end c-net">₹{{ "{:,.2f}".format(ns.net) }}</td>
+          </tr>
+          {% endif %}
+
+          {# New group header #}
+          <tr class="tbl-grp">
+            <td colspan="14" class="py-1">
+              <i class="bi {{ gbo.icon }} me-2"></i>
+              <strong>{{ gbo.label }}: {{ this_grp }}</strong>
+            </td>
+          </tr>
+
+          {# Reset namespace accumulators #}
+          {% set ns.cur_grp  = this_grp %}
+          {% set ns.s_qty    = 0 %}
+          {% set ns.s_amt    = 0 %}
+          {% set ns.disc     = 0 %}
+          {% set ns.n_sales  = 0 %}
+          {% set ns.r_qty    = 0 %}
+          {% set ns.r_amt    = 0 %}
+          {% set ns.net      = 0 %}
+        {% endif %}
+
+        {# Accumulate subtotals #}
+        {% set ns.s_qty   = ns.s_qty   + (row.QTY|float if row.TRAN_TYPE=='SALES'  else 0) %}
+        {% set ns.s_amt   = ns.s_amt   + (row.AMOUNT|float if row.TRAN_TYPE=='SALES' else 0) %}
+        {% set ns.disc    = ns.disc    + (row.DISC_AMOUNT|float if row.TRAN_TYPE=='SALES' else 0) %}
+        {% set ns.n_sales = ns.n_sales + row.SALES_VALUE|float %}
+        {% set ns.r_qty   = ns.r_qty   + (row.QTY|float if row.TRAN_TYPE=='REFUND' else 0) %}
+        {% set ns.r_amt   = ns.r_amt   + row.REFUND_VALUE|float %}
+        {% set ns.net     = ns.net     + row.NET_VALUE|float %}
+
+        {# Data row #}
+        <tr class="{% if row.TRAN_TYPE=='REFUND' %}table-danger bg-opacity-10{% endif %}">
+          <td>
+            {% if row.TRAN_TYPE == 'SALES' %}
+              <span class="badge-s">SALE</span>
+            {% else %}
+              <span class="badge-r">REFUND</span>
+            {% endif %}
+          </td>
+          <td>{{ row.TRANS_DATE }}</td>
+          <td class="text-muted small">{{ row.TRANS_NO }}</td>
+          <td class="small">{{ row.ITEM_CODE }}</td>
+          <td>{{ row.ITEM_NAME }}</td>
+          {% if group_by != 'category' %}<td class="text-muted small">{{ row.CATEGORY }}</td>{% endif %}
+          {% if group_by != 'brand' %}   <td class="text-muted small">{{ row.BRAND }}</td>{% endif %}
+          {% if group_by != 'supplier' %}<td class="text-muted small">{{ row.SUPPLIER_NAME }}</td>{% endif %}
+          <td class="text-end">{{ row.QTY|int if row.QTY is not none else 0 }}</td>
+          <td class="text-end">₹{{ "{:,.2f}".format(row.AMOUNT|float) }}</td>
+          <td class="text-end c-disc">
+            {% if row.DISC_AMOUNT and row.DISC_AMOUNT > 0 %}
+              ₹{{ "{:,.2f}".format(row.DISC_AMOUNT|float) }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-end c-sales">
+            {% if row.SALES_VALUE and row.SALES_VALUE > 0 %}
+              ₹{{ "{:,.2f}".format(row.SALES_VALUE|float) }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-end c-refund">
+            {% if row.REFUND_VALUE and row.REFUND_VALUE > 0 %}
+              ₹{{ "{:,.2f}".format(row.REFUND_VALUE|float) }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-end c-net fw-bold">₹{{ "{:,.2f}".format(row.NET_VALUE|float) }}</td>
+        </tr>
+      {% endfor %}
+
+      {# Last group subtotal #}
+      {% if ns.cur_grp != '__NONE__' %}
+      <tr class="tbl-foot">
+        <td colspan="{% if group_by=='category' %}5{% elif group_by=='brand' %}5{% elif group_by=='supplier' %}5{% else %}4{% endif %}"
+            class="text-end">Subtotal — {{ ns.cur_grp }}</td>
+        <td class="text-end c-sales">{{ ns.s_qty|int }}</td>
+        <td class="text-end c-sales">₹{{ "{:,.2f}".format(ns.s_amt) }}</td>
+        <td class="text-end c-disc">₹{{ "{:,.2f}".format(ns.disc) }}</td>
+        <td class="text-end c-sales">₹{{ "{:,.2f}".format(ns.n_sales) }}</td>
+        <td class="text-end c-refund">{{ ns.r_qty|int }}</td>
+        <td class="text-end c-refund">₹{{ "{:,.2f}".format(ns.r_amt) }}</td>
+        <td class="text-end c-net">₹{{ "{:,.2f}".format(ns.net) }}</td>
+      </tr>
+      {% endif %}
+    </tbody>
+
+    {# Grand total footer #}
+    <tfoot class="tbl-foot" style="background:#1a4e8f;color:#fff">
+      <tr>
+        <td colspan="{% if group_by=='category' %}5{% elif group_by=='brand' %}5{% elif group_by=='supplier' %}5{% else %}4{% endif %}"
+            class="fw-bold">GRAND TOTAL — {{ df|length }} lines</td>
+        <td class="text-end">
+          {{ df[df.TRAN_TYPE=='SALES'].QTY.sum()|int if not df.empty else 0 }}
+        </td>
+        <td class="text-end">
+          ₹{{ "{:,.2f}".format(df[df.TRAN_TYPE=='SALES'].AMOUNT.sum() if not df.empty else 0) }}
+        </td>
+        <td class="text-end">
+          ₹{{ "{:,.2f}".format(df[df.TRAN_TYPE=='SALES'].DISC_AMOUNT.sum() if not df.empty else 0) }}
+        </td>
+        <td class="text-end">
+          ₹{{ "{:,.2f}".format(df.SALES_VALUE.sum() if not df.empty else 0) }}
+        </td>
+        <td class="text-end">
+          {{ df[df.TRAN_TYPE=='REFUND'].QTY.sum()|int if not df.empty else 0 }}
+        </td>
+        <td class="text-end">
+          ₹{{ "{:,.2f}".format(df.REFUND_VALUE.sum() if not df.empty else 0) }}
+        </td>
+        <td class="text-end fw-bold">
+          ₹{{ "{:,.2f}".format(df.NET_VALUE.sum() if not df.empty else 0) }}
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

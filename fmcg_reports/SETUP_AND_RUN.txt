@@ -1,0 +1,125 @@
+# ================================================================
+# FMCG REPORTING TOOL - SETUP & RUN GUIDE
+# Database: RetailWizard (SQL Server) | Backend: Python Flask
+# ================================================================
+
+## STEP 1 — INSTALL PYTHON
+Download Python 3.11+ from https://python.org
+During install: CHECK "Add Python to PATH"
+
+## STEP 2 — INSTALL ODBC DRIVER FOR SQL SERVER
+Download: https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server
+Install: "ODBC Driver 17 for SQL Server"
+
+## STEP 3 — INSTALL PYTHON PACKAGES
+Open Command Prompt in the fmcg_reports folder and run:
+
+    pip install flask pyodbc pandas openpyxl reportlab
+
+## STEP 4 — RUN SQL VIEWS ON YOUR SQL SERVER
+Open SQL Server Management Studio (SSMS)
+Connect to:  157.20.172.168\SQLEXPRESS,1433
+Database:    RWMBSERVER
+Open file:   sql/01_create_views.sql
+Click:       Execute (F5)
+
+This will create 16 reporting views in your database.
+
+## STEP 5 — UPDATE DB CONNECTION (if needed)
+Edit app.py lines 15-19:
+    DB_SERVER   = r'157.20.172.168\SQLEXPRESS,1433'
+    DB_NAME     = 'RWMBSERVER'
+    DB_USER     = 'sa'
+    DB_PASSWORD = 'YOUR_DB_PASSWORD'
+
+## STEP 6 — RUN THE APP
+In Command Prompt:
+    cd fmcg_reports
+    python app.py
+
+## STEP 7 — OPEN IN BROWSER
+Go to:  http://localhost:5000
+
+================================================================
+FOLDER STRUCTURE
+================================================================
+fmcg_reports/
+├── app.py                  ← Main Flask app (all routes)
+├── requirements.txt        ← Python packages
+├── sql/
+│   └── 01_create_views.sql ← All 16 SQL Views (run this first!)
+├── exports/
+│   ├── pdf_export.py       ← PDF generation (ReportLab)
+│   ├── excel_export.py     ← Excel export (OpenPyXL)
+│   └── email_send.py       ← Email with attachment (SMTP)
+└── templates/
+    ├── base.html           ← Sidebar layout
+    ├── index.html          ← Dashboard
+    └── sales/
+        └── summary.html    ← Sales summary page
+        (add more pages as needed)
+
+================================================================
+REPORTS AVAILABLE
+================================================================
+SALES:
+  /sales/summary   — Daily/Monthly sales summary
+  /sales/detail    — Item-wise bill details
+  /sales/payment   — Payment mode collection
+  /sales/returns   — Sales returns & refunds
+
+CUSTOMER:
+  /customer/list    — Customer master list
+  /customer/ledger  — Customer bill history
+  /customer/loyalty — Loyalty points ledger
+
+PURCHASE:
+  /purchase/summary — GRN summary by supplier
+  /purchase/detail  — GRN item details
+  /purchase/returns — Purchase return (PRN)
+
+INVENTORY:
+  /inventory/stock    — Stock status (QOH, reorder alerts)
+  /inventory/transfer — Stock transfer (MTN In/Out)
+
+ANALYTICS:
+  /analytics/trend     — Daily/Monthly sales trend
+  /analytics/top_items — Top selling products
+  /analytics/category  — Category-wise performance
+  /analytics/supplier  — Supplier performance
+
+================================================================
+EXPORT OPTIONS (on every report page)
+================================================================
+  PDF   — Professional PDF with header, table, totals
+  Excel — Styled Excel with summary sheet + auto filter
+  Email — Send PDF/Excel directly to any email address
+
+================================================================
+EMAIL CONFIG (already set from your System.dat)
+================================================================
+  SMTP: smtp.gmail.com:587
+  From: retailwizardreports@gmail.com
+  To:   y.vivek82@gmail.com (default, changeable per report)
+
+================================================================
+SQL VIEWS CREATED (16 total)
+================================================================
+  VW_RPT_SALES_SUMMARY         — Sales header summary
+  VW_RPT_SALES_DETAIL          — Item-wise sales with margin
+  VW_RPT_PAYMENT_COLLECTION    — Payment mode breakdown
+  VW_RPT_SALES_RETURN          — Return transactions
+  VW_RPT_CUSTOMER              — Customer master
+  VW_RPT_CUSTOMER_LEDGER       — Customer bill history
+  VW_RPT_LOYALTY_LEDGER        — Loyalty point ledger
+  VW_RPT_PURCHASE_SUMMARY      — GRN summary
+  VW_RPT_PURCHASE_DETAIL       — GRN item details
+  VW_RPT_PURCHASE_RETURN       — PRN return details
+  VW_RPT_STOCK_TRANSFER        — MTN transfer (in/out)
+  VW_RPT_STOCK_STATUS          — Current stock + alerts
+  VW_RPT_DAILY_TREND           — Aggregated daily trend
+  VW_RPT_TOP_ITEMS             — Top items by sales
+  VW_RPT_CATEGORY_SALES        — Category performance
+  VW_RPT_SUPPLIER_PERFORMANCE  — Supplier stats
+
+================================================================

@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Sales Returns{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-arrow-return-left"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?from_date={{ from_date }}&to_date={{ to_date }}&export=pdf"   class="btn btn-export-pdf btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+    <a href="?from_date={{ from_date }}&to_date={{ to_date }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','Sales Returns')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">From Date</label>
+      <input type="date" name="from_date" class="form-control form-control-sm" value="{{ from_date }}"></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">To Date</label>
+      <input type="date" name="to_date" class="form-control form-control-sm" value="{{ to_date }}"></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Filter</button></div>
+  </form>
+</div>
+
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Returns</div><div class="kpi-val text-danger">{{ df['BILL_RTN_NO'].nunique() }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Return Value</div><div class="kpi-val text-danger">₹{{ "{:,.0f}".format(df['AMOUNT'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Qty Returned</div><div class="kpi-val">{{ "{:,.0f}".format(df['RTN_QTY'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Refunded</div><div class="kpi-val text-warning">₹{{ "{:,.0f}".format(df['REFUND_AMOUNT'].sum()) }}</div></div></div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span><i class="bi bi-table"></i> Sales Returns</span>
+    <span class="badge bg-light text-dark">{{ df|length }} records</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead>
+          <tr>
+            <th>Return Date</th><th>RTN#</th><th>Against Bill#</th>
+            <th>Item</th><th>Category</th><th>Dept</th>
+            <th class="text-end">Qty</th><th class="text-end">Rate</th>
+            <th class="text-end">Amount</th><th>Refund Mode</th>
+            <th class="text-end">Refund Amt</th><th>Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          <tr>
+            <td>{{ row.RETURN_DATE }}</td>
+            <td>{{ row.BILL_RTN_NO }}</td>
+            <td>{{ row.AGAINST_BILL_NO }}</td>
+            <td>{{ row.ITEM_NAME }}</td>
+            <td><span class="badge bg-light text-dark">{{ row.CATEGORY or '-' }}</span></td>
+            <td>{{ row.DEPT_CODE }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.RTN_QTY) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.RATE) }}</td>
+            <td class="text-end text-danger fw-bold">{{ "{:,.2f}".format(row.AMOUNT) }}</td>
+            <td><span class="badge bg-secondary">{{ row.REFUND_MODE or '-' }}</span></td>
+            <td class="text-end text-warning">{{ "{:,.2f}".format(row.REFUND_AMOUNT) }}</td>
+            <td class="text-muted" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ row.REASON_FOR_REFUND }}">{{ row.REASON_FOR_REFUND or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="12" class="text-center text-muted py-4">No return records found</td></tr>
+          {% endfor %}
+        </tbody>
+        {% if not df.empty %}
+        <tfoot class="table-secondary fw-bold">
+          <tr>
+            <td colspan="6">TOTAL</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['RTN_QTY'].sum()) }}</td>
+            <td></td>
+            <td class="text-end text-danger">{{ "{:,.2f}".format(df['AMOUNT'].sum()) }}</td>
+            <td></td>
+            <td class="text-end text-warning">{{ "{:,.2f}".format(df['REFUND_AMOUNT'].sum()) }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

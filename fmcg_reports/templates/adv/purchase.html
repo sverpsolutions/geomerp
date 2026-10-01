@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+{% block title %}Advanced Purchase Report{% endblock %}
+
+{% block content %}
+<style>
+  .col-purchase { color:#198754; font-weight:600; }
+  .col-return   { color:#dc3545; font-weight:600; }
+  .col-net      { color:#0d6efd; font-weight:700; }
+  .kpi-purch  { border-left:4px solid #198754; }
+  .kpi-return { border-left:4px solid #dc3545; }
+  .kpi-net    { border-left:4px solid #0d6efd; }
+  .kpi-tax    { border-left:4px solid #6d28d9; }
+  .tbl-head   { background:#15803d; color:#fff; position:sticky; top:0; z-index:1; }
+  .tbl-foot   { background:#dcf0e0; font-weight:700; }
+  th, td      { white-space:nowrap; }
+  .badge-purch  { background:#198754; color:#fff; font-size:10px; padding:2px 6px; border-radius:10px; }
+  .badge-return { background:#dc3545; color:#fff; font-size:10px; padding:2px 6px; border-radius:10px; }
+  .view-btn.active { background:#15803d !important; color:#fff !important; border-color:#15803d !important; }
+</style>
+
+<!-- ─── Topbar ─────────────────────────────────────────────────── -->
+<div class="topbar">
+  <h5><i class="bi bi-truck me-2"></i>{{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?{{ filter_qs }}&export=excel" class="btn btn-export-excel btn-sm">
+      <i class="bi bi-file-excel me-1"></i>Excel
+    </a>
+    <a href="?{{ filter_qs }}&export=pdf" class="btn btn-export-pdf btn-sm">
+      <i class="bi bi-file-pdf me-1"></i>PDF
+    </a>
+  </div>
+</div>
+
+<!-- ─── KPI Row ───────────────────────────────────────────────── -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-purch">
+      <div class="kpi-lbl">Total Purchase</div>
+      <div class="kpi-val col-purchase">₹{{ "{:,.0f}".format(kpi.total_purchase) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-return">
+      <div class="kpi-lbl">Purchase Returns</div>
+      <div class="kpi-val col-return">₹{{ "{:,.0f}".format(kpi.total_return) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-net">
+      <div class="kpi-lbl">Net Purchase</div>
+      <div class="kpi-val col-net">₹{{ "{:,.0f}".format(kpi.net_purchase) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-tax">
+      <div class="kpi-lbl">Total Tax (GST)</div>
+      <div class="kpi-val" style="color:#6d28d9">₹{{ "{:,.0f}".format(kpi.total_tax) }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Filters ──────────────────────────────────────────────── -->
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <input type="hidden" name="view" value="{{ view }}">
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">From Date</label>
+      <input type="date" name="from_date" value="{{ from_date }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">To Date</label>
+      <input type="date" name="to_date" value="{{ to_date }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">Supplier</label>
+      <select name="supplier" class="form-select form-select-sm" style="min-width:160px">
+        <option value="">All Suppliers</option>
+        {% for s in suppliers %}
+        <option value="{{ s }}" {% if supplier==s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">Category</label>
+      <select name="category" class="form-select form-select-sm" style="min-width:140px">
+        <option value="">All Categories</option>
+        {% for c in categories %}
+        <option value="{{ c }}" {% if category==c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">Brand</label>
+      <select name="brand" class="form-select form-select-sm" style="min-width:130px">
+        <option value="">All Brands</option>
+        {% for b in brands %}
+        <option value="{{ b }}" {% if brand==b %}selected{% endif %}>{{ b }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1 small">Item Search</label>
+      <input type="text" name="item_search" value="{{ item_search }}"
+             class="form-control form-control-sm" placeholder="Code or Name…" style="min-width:130px">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-success btn-sm">
+        <i class="bi bi-search me-1"></i>Load
+      </button>
+      <a href="/adv/purchase" class="btn btn-outline-secondary btn-sm ms-1">
+        <i class="bi bi-x-circle me-1"></i>Reset
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- ─── View Toggle ──────────────────────────────────────────── -->
+<div class="d-flex align-items-center gap-2 mb-3">
+  <span class="text-muted small fw-bold">View:</span>
+  <a href="?{{ base_qs }}&view=summary"
+     class="btn btn-sm view-btn {% if view=='summary' %}active{% else %}btn-outline-success{% endif %}">
+    <i class="bi bi-bar-chart me-1"></i>Summary
+  </a>
+  <a href="?{{ base_qs }}&view=detail"
+     class="btn btn-sm view-btn {% if view=='detail' %}active{% else %}btn-outline-success{% endif %}">
+    <i class="bi bi-list-ul me-1"></i>Detail
+  </a>
+  {% if not df.empty %}
+  <span class="ms-2 text-muted small">
+    <i class="bi bi-table me-1"></i>{{ df|length }} rows
+  </span>
+  {% endif %}
+</div>
+
+<!-- ─── Main Table ────────────────────────────────────────────── -->
+{% if df.empty %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle me-2"></i>
+  No data found for the selected filters. Try adjusting the date range.
+</div>
+{% else %}
+
+{% if view == 'summary' %}
+<!-- ════════════════ SUMMARY TABLE ════════════════════════════ -->
+<div class="table-responsive" style="max-height:500px;overflow-y:auto">
+  <table class="table table-hover table-bordered table-sm small mb-0">
+    <thead class="tbl-head">
+      <tr>
+        <th>Date</th>
+        <th>Supplier</th>
+        <th>Category</th>
+        <th>Brand</th>
+        <th class="text-end">GRNs</th>
+        <th class="text-end">Purch Qty</th>
+        <th class="text-end">Rtn Qty</th>
+        <th class="text-end" style="color:#90ee90">Purchase (₹)</th>
+        <th class="text-end" style="color:#ffaaaa">Return (₹)</th>
+        <th class="text-end" style="color:#add8e6">Net Purchase (₹)</th>
+        <th class="text-end" style="color:#dda0dd">Tax (₹)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for _, row in df.iterrows() %}
+      <tr>
+        <td>{{ row.GRN_DATE }}</td>
+        <td>{{ row.SUPPLIER_NAME }}</td>
+        <td class="text-muted small">{{ row.CATEGORY }}</td>
+        <td class="text-muted small">{{ row.BRAND }}</td>
+        <td class="text-end">{{ row.GRN_COUNT|int if row.GRN_COUNT is not none else 0 }}</td>
+        <td class="text-end">{{ row.PURCHASE_QTY|int if row.PURCHASE_QTY is not none else 0 }}</td>
+        <td class="text-end text-danger">
+          {% if row.RETURN_QTY and row.RETURN_QTY > 0 %}{{ row.RETURN_QTY|int }}{% else %}—{% endif %}
+        </td>
+        <td class="text-end col-purchase">₹{{ "{:,.2f}".format(row.TOTAL_PURCHASE|float) }}</td>
+        <td class="text-end {% if row.TOTAL_RETURN and row.TOTAL_RETURN > 0 %}col-return{% else %}text-muted{% endif %}">
+          {% if row.TOTAL_RETURN and row.TOTAL_RETURN > 0 %}
+            ₹{{ "{:,.2f}".format(row.TOTAL_RETURN|float) }}
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-end col-net">₹{{ "{:,.2f}".format(row.NET_PURCHASE|float) }}</td>
+        <td class="text-end" style="color:#6d28d9">₹{{ "{:,.2f}".format(row.TOTAL_TAX|float) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot class="tbl-foot">
+      <tr>
+        <td colspan="7">TOTAL ({{ df|length }} rows)</td>
+        <td class="text-end col-purchase">₹{{ "{:,.2f}".format(df.TOTAL_PURCHASE.sum()) }}</td>
+        <td class="text-end col-return">₹{{ "{:,.2f}".format(df.TOTAL_RETURN.sum()) }}</td>
+        <td class="text-end col-net">₹{{ "{:,.2f}".format(df.NET_PURCHASE.sum()) }}</td>
+        <td class="text-end" style="color:#6d28d9">₹{{ "{:,.2f}".format(df.TOTAL_TAX.sum()) }}</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+{% else %}
+<!-- ════════════════ DETAIL TABLE ════════════════════════════ -->
+<div class="table-responsive" style="max-height:550px;overflow-y:auto">
+  <table class="table table-hover table-bordered table-sm small mb-0">
+    <thead class="tbl-head">
+      <tr>
+        <th>Date</th>
+        <th>Trans No</th>
+        <th>Type</th>
+        <th>Supplier</th>
+        <th>Item Code</th>
+        <th>Item Name</th>
+        <th>Category</th>
+        <th>Brand</th>
+        <th class="text-end">Qty</th>
+        <th class="text-end">Cost Price</th>
+        <th class="text-end">MRP</th>
+        <th class="text-end">Amount</th>
+        <th class="text-end">Discount</th>
+        <th class="text-end">Tax</th>
+        <th class="text-end" style="color:#90ee90">Purchase (₹)</th>
+        <th class="text-end" style="color:#ffaaaa">Return (₹)</th>
+        <th class="text-end" style="color:#add8e6">Net (₹)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for _, row in df.iterrows() %}
+      <tr class="{% if row.TRAN_TYPE == 'PURCHASE_RETURN' %}table-danger bg-opacity-10{% endif %}">
+        <td>{{ row.TRANS_DATE }}</td>
+        <td class="text-muted small">{{ row.TRANS_NO }}</td>
+        <td>
+          {% if row.TRAN_TYPE == 'PURCHASE' %}
+            <span class="badge-purch">GRN</span>
+          {% else %}
+            <span class="badge-return">RETURN</span>
+          {% endif %}
+        </td>
+        <td class="small">{{ row.SUPPLIER_NAME }}</td>
+        <td class="small">{{ row.ITEM_CODE }}</td>
+        <td>{{ row.ITEM_NAME }}</td>
+        <td class="text-muted small">{{ row.CATEGORY }}</td>
+        <td class="text-muted small">{{ row.BRAND }}</td>
+        <td class="text-end">{{ row.QTY|int if row.QTY is not none else 0 }}</td>
+        <td class="text-end">{{ "{:,.2f}".format(row.COST_PRICE|float) }}</td>
+        <td class="text-end">{{ "{:,.2f}".format(row.MRP|float) }}</td>
+        <td class="text-end">{{ "{:,.2f}".format(row.AMOUNT|float) }}</td>
+        <td class="text-end text-danger">
+          {% if row.DISC_AMOUNT and row.DISC_AMOUNT > 0 %}
+            {{ "{:,.2f}".format(row.DISC_AMOUNT|float) }}
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-end" style="color:#6d28d9">{{ "{:,.2f}".format(row.TAX_AMOUNT|float) }}</td>
+        <td class="text-end col-purchase">
+          {% if row.PURCHASE_VALUE and row.PURCHASE_VALUE > 0 %}₹{{ "{:,.2f}".format(row.PURCHASE_VALUE|float) }}
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-end col-return">
+          {% if row.RETURN_VALUE and row.RETURN_VALUE > 0 %}₹{{ "{:,.2f}".format(row.RETURN_VALUE|float) }}
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-end col-net">₹{{ "{:,.2f}".format(row.NET_VALUE|float) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot class="tbl-foot">
+      <tr>
+        <td colspan="14">TOTAL ({{ df|length }} rows)</td>
+        <td class="text-end col-purchase">₹{{ "{:,.2f}".format(df.PURCHASE_VALUE.sum()) }}</td>
+        <td class="text-end col-return">₹{{ "{:,.2f}".format(df.RETURN_VALUE.sum()) }}</td>
+        <td class="text-end col-net">₹{{ "{:,.2f}".format(df.NET_VALUE.sum()) }}</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+{% endif %}
+
+{% endif %}
+
+<!-- ─── Top 10 Items ──────────────────────────────────────────── -->
+{% if top10 is defined and not top10.empty %}
+<div class="mt-4">
+  <div class="card">
+    <div class="card-header" style="background:#15803d;color:#fff">
+      <i class="bi bi-trophy-fill me-2"></i>Top 10 Items by Net Purchase
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover table-bordered small mb-0">
+          <thead style="background:#f4a621;color:#000;font-weight:700">
+            <tr>
+              <th>#</th><th>Item Code</th><th>Item Name</th>
+              <th>Category</th><th>Brand</th><th>Supplier</th>
+              <th class="text-end">Qty</th>
+              <th class="text-end col-purchase">Purchase (₹)</th>
+              <th class="text-end col-return">Return (₹)</th>
+              <th class="text-end col-net">Net (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for i, row in top10.iterrows() %}
+            <tr>
+              <td class="fw-bold text-muted">{{ loop.index }}</td>
+              <td class="small">{{ row.ITEM_CODE }}</td>
+              <td>{{ row.ITEM_NAME }}</td>
+              <td class="text-muted small">{{ row.CATEGORY }}</td>
+              <td class="text-muted small">{{ row.BRAND }}</td>
+              <td class="text-muted small">{{ row.SUPPLIER_NAME }}</td>
+              <td class="text-end">{{ row.PURCHASE_QTY|int if row.PURCHASE_QTY is not none else 0 }}</td>
+              <td class="text-end col-purchase">₹{{ "{:,.2f}".format(row.TOTAL_PURCHASE|float) }}</td>
+              <td class="text-end col-return">
+                {% if row.TOTAL_RETURN and row.TOTAL_RETURN > 0 %}₹{{ "{:,.2f}".format(row.TOTAL_RETURN|float) }}
+                {% else %}—{% endif %}
+              </td>
+              <td class="text-end col-net">₹{{ "{:,.2f}".format(row.NET_PURCHASE|float) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "C:\\xampp\\htdocs\\ModernBazaarHO\\backend\\venv\\Scripts\\python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--app-dir", "C:\\xampp\\htdocs\\ModernBazaarHO\\backend", "--host", "0.0.0.0", "--port", "8000"],
+      "cwd": "C:\\xampp\\htdocs\\ModernBazaarHO\\backend",
+      "port": 8000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "C:\\xampp\\htdocs\\ModernBazaarHO\\frontend",
+      "port": 5173
+    }
+  ]
+}

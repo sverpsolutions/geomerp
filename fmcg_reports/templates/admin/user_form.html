@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if is_edit else 'New' }} User – {{ company.company_name }}{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5>
+    <i class="bi bi-person-{{ 'gear' if is_edit else 'plus' }} me-2"></i>
+    {{ 'Edit User: ' + user.username if is_edit else 'Create New User' }}
+  </h5>
+  <a href="/admin/users" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i> Back to Users
+  </a>
+</div>
+
+<div class="row g-4">
+  <!-- User form -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-person-fill me-2"></i>User Details
+      </div>
+      <div class="card-body p-4">
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Username <span class="text-danger">*</span></label>
+            <input type="text" name="username" class="form-control"
+                   value="{{ user.username or '' }}" required
+                   placeholder="e.g. john_doe"
+                   {% if is_edit and user.role == 'superadmin' %}readonly{% endif %}>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">
+              Password {% if is_edit %}<small class="text-muted fw-normal">(leave blank to keep current)</small>{% else %}<span class="text-danger">*</span>{% endif %}
+            </label>
+            <div class="input-group">
+              <input type="password" name="password" id="pwdField" class="form-control"
+                     placeholder="{{ 'New password (optional)' if is_edit else 'Set password' }}"
+                     {% if not is_edit %}required{% endif %}>
+              <button type="button" class="btn btn-outline-secondary" onclick="togglePwd()">
+                <i class="bi bi-eye" id="eyeIcon"></i>
+              </button>
+            </div>
+            <small class="text-muted">Min 6 characters recommended.</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Role <span class="text-danger">*</span></label>
+            <select name="role" class="form-select"
+                    {% if is_edit and user.role == 'superadmin' %}disabled{% endif %}>
+              <option value="user"       {{ 'selected' if user.role == 'user' }}>User</option>
+              <option value="manager"    {{ 'selected' if user.role == 'manager' }}>Manager</option>
+              <option value="superadmin" {{ 'selected' if user.role == 'superadmin' }}>SuperAdmin</option>
+            </select>
+            {% if is_edit and user.role == 'superadmin' %}
+            <input type="hidden" name="role" value="superadmin">
+            {% endif %}
+          </div>
+
+          <div class="mb-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="is_active"
+                     id="activeSwitch" value="1"
+                     {{ 'checked' if not is_edit or user.is_active }}>
+              <label class="form-check-label fw-bold" for="activeSwitch">Active</label>
+            </div>
+            <small class="text-muted">Inactive users cannot log in.</small>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-save me-1"></i> {{ 'Update User' if is_edit else 'Create User' }}
+            </button>
+            <a href="/admin/users" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report access -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-file-earmark-lock me-2"></i>Report Access</span>
+        <div class="d-flex gap-1">
+          <button type="button" class="btn btn-sm btn-outline-light" onclick="checkAll()">All</button>
+          <button type="button" class="btn btn-sm btn-outline-light" onclick="uncheckAll()">None</button>
+        </div>
+      </div>
+      <div class="card-body p-3" style="max-height:500px;overflow-y:auto">
+        <form method="POST" id="reportForm">
+          {# Group reports by category #}
+          {% set ns = namespace(current_cat='') %}
+          {% for r in reports %}
+            {% if r.category != ns.current_cat %}
+              {% if not loop.first %}</div>{% endif %}
+              {% set ns.current_cat = r.category %}
+              <div class="mb-2">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge" style="background:#1a4e8f;font-size:10px">{{ r.category }}</span>
+                <button type="button" class="btn btn-link btn-sm p-0 text-muted"
+                        style="font-size:11px" onclick="toggleCat('cat_{{ r.category | replace(' ','_') }}')">
+                  toggle
+                </button>
+              </div>
+            {% endif %}
+            <div class="form-check ms-2 mb-1" data-cat="cat_{{ r.category | replace(' ','_') }}">
+              <input class="form-check-input report-cb" type="checkbox"
+                     name="report_ids" value="{{ r.id }}"
+                     id="r{{ r.id }}"
+                     {{ 'checked' if r.id in assigned_report_ids }}>
+              <label class="form-check-label" for="r{{ r.id }}" style="font-size:12.5px">
+                {{ r.report_name }}
+              </label>
+            </div>
+          {% endfor %}
+          </div>
+
+          <hr class="my-2">
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success btn-sm px-3">
+              <i class="bi bi-check2-circle me-1"></i> Save Access
+            </button>
+            <a href="/admin/users" class="btn btn-outline-secondary btn-sm">Cancel</a>
+          </div>
+        </form>
+
+        {# Merge both forms via JS #}
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          const userForm   = document.querySelector('form[method="POST"]:not(#reportForm)');
+          const reportForm = document.getElementById('reportForm');
+          if (!userForm || !reportForm) return;
+
+          userForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Append report checkboxes to the main form before submit
+            document.querySelectorAll('.report-cb:checked').forEach(cb => {
+              const hidden = document.createElement('input');
+              hidden.type  = 'hidden';
+              hidden.name  = 'report_ids';
+              hidden.value = cb.value;
+              userForm.appendChild(hidden);
+            });
+            userForm.submit();
+          });
+
+          // Hide the separate save button in report form (we use user form submit)
+          reportForm.querySelector('button[type="submit"]').style.display = 'none';
+          reportForm.querySelector('a.btn').style.display = 'none';
+        });
+        </script>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePwd() {
+  const f = document.getElementById('pwdField');
+  const e = document.getElementById('eyeIcon');
+  f.type = f.type === 'password' ? 'text' : 'password';
+  e.className = f.type === 'text' ? 'bi bi-eye-slash' : 'bi bi-eye';
+}
+function checkAll()   { document.querySelectorAll('.report-cb').forEach(c => c.checked = true); }
+function uncheckAll() { document.querySelectorAll('.report-cb').forEach(c => c.checked = false); }
+function toggleCat(cat) {
+  const items = document.querySelectorAll(`[data-cat="${cat}"] .report-cb`);
+  const allChecked = [...items].every(c => c.checked);
+  items.forEach(c => c.checked = !allChecked);
+}
+</script>
+{% endblock %}

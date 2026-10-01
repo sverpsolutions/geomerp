@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}GSTR-1 Report{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-shield-check"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?year={{ year }}&month={{ month }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <a href="/gst/gstr1/export/GSTR1_Filing_Report_{{ year }}_{{ '%02d' % month|int }}.xlsx?year={{ year }}&month={{ month }}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-arrow-down"></i> GST Filing</a>
+    <a href="?year={{ year }}&month={{ month }}&export=json"  class="btn btn-export-json  btn-sm"><i class="bi bi-braces"></i> JSON</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','GSTR-1')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Year</label>
+      <select name="year" class="form-select form-select-sm">{% for y in range(2022,2028) %}<option value="{{ y }}" {% if year==y|string %}selected{% endif %}>{{ y }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Month</label>
+      <select name="month" class="form-select form-select-sm">{% for m in range(1,13) %}<option value="{{ m }}" {% if month==m|string %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Generate</button></div>
+  </form>
+</div>
+
+{% if not df.empty %}
+<!-- Summary by category -->
+<div class="row g-3 mb-3">
+  {% set b2b = df[df['INVOICE_CATEGORY']=='B2B'] %}
+  {% set b2cs = df[df['INVOICE_CATEGORY']=='B2CS'] %}
+  {% set b2cl = df[df['INVOICE_CATEGORY']=='B2CL'] %}
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">Total Invoices</div><div class="kpi-val">{{ df|length }}</div></div></div>
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">B2B</div><div class="kpi-val text-primary">{{ b2b|length }}</div></div></div>
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">B2CS</div><div class="kpi-val text-success">{{ b2cs|length }}</div></div></div>
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">B2CL</div><div class="kpi-val text-warning">{{ b2cl|length }}</div></div></div>
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">Taxable Value</div><div class="kpi-val text-success" style="font-size:16px">₹{{ "{:,.0f}".format(df['TAXABLE_VALUE'].sum()) }}</div></div></div>
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">Total Tax</div><div class="kpi-val text-danger" style="font-size:16px">₹{{ "{:,.0f}".format(df['TOTAL_TAX'].sum()) }}</div></div></div>
+</div>
+<!-- B2CS Summary card -->
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="card"><div class="card-header">B2CS (Small Customers) Summary</div>
+    <div class="card-body">
+      <table class="table table-sm mb-0">
+        <tr><td>Taxable Value</td><td class="text-end fw-bold">₹{{ "{:,.2f}".format(b2cs['TAXABLE_VALUE'].sum()) }}</td></tr>
+        <tr><td>CGST</td><td class="text-end">₹{{ "{:,.2f}".format(b2cs['CGST_AMT'].sum()) }}</td></tr>
+        <tr><td>SGST</td><td class="text-end">₹{{ "{:,.2f}".format(b2cs['SGST_AMT'].sum()) }}</td></tr>
+        <tr><td>IGST</td><td class="text-end">₹{{ "{:,.2f}".format(b2cs['IGST_AMT'].sum()) }}</td></tr>
+        <tr class="table-success"><td><b>Invoice Value</b></td><td class="text-end fw-bold">₹{{ "{:,.2f}".format(b2cs['INVOICE_VALUE'].sum()) }}</td></tr>
+      </table>
+    </div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card"><div class="card-header">B2B Summary</div>
+    <div class="card-body">
+      <table class="table table-sm mb-0">
+        <tr><td>Taxable Value</td><td class="text-end fw-bold">₹{{ "{:,.2f}".format(b2b['TAXABLE_VALUE'].sum()) }}</td></tr>
+        <tr><td>CGST</td><td class="text-end">₹{{ "{:,.2f}".format(b2b['CGST_AMT'].sum()) }}</td></tr>
+        <tr><td>SGST</td><td class="text-end">₹{{ "{:,.2f}".format(b2b['SGST_AMT'].sum()) }}</td></tr>
+        <tr class="table-primary"><td><b>Invoice Value</b></td><td class="text-end fw-bold">₹{{ "{:,.2f}".format(b2b['INVOICE_VALUE'].sum()) }}</td></tr>
+      </table>
+    </div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card"><div class="card-header">Tax Split Chart</div>
+    <div class="card-body"><canvas id="gstr1Chart" height="160"></canvas></div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between"><span><i class="bi bi-table"></i> GSTR-1 Invoice List</span><span class="badge bg-light text-dark">{{ df|length }} invoices</span></div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead><tr>
+          <th>Invoice Date</th><th>Invoice No</th><th>Type</th><th>Category</th><th>Customer</th>
+          <th class="text-end">Taxable (₹)</th><th class="text-end">IGST (₹)</th>
+          <th class="text-end">CGST (₹)</th><th class="text-end">SGST (₹)</th>
+          <th class="text-end">Total Tax (₹)</th><th class="text-end">Invoice Val (₹)</th>
+        </tr></thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          <tr>
+            <td>{{ row.BILL_DATE }}</td>
+            <td class="fw-bold">{{ row.GST_INVOICE_NO }}</td>
+            <td><span class="badge bg-light text-dark">{{ row.INVOICE_TYPE or 'TAX' }}</span></td>
+            <td><span class="badge {% if row.INVOICE_CATEGORY=='B2B' %}bg-primary{% elif row.INVOICE_CATEGORY=='B2CL' %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ row.INVOICE_CATEGORY }}</span></td>
+            <td>{{ row.CUSTOMER_NAME or 'Walk-in' }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.TAXABLE_VALUE) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.IGST_AMT) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.CGST_AMT) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.SGST_AMT) }}</td>
+            <td class="text-end fw-bold text-danger">{{ "{:,.2f}".format(row.TOTAL_TAX) }}</td>
+            <td class="text-end fw-bold">{{ "{:,.2f}".format(row.INVOICE_VALUE) }}</td>
+          </tr>
+          {% else %}<tr><td colspan="11" class="text-center text-muted py-4">No data</td></tr>{% endfor %}
+        </tbody>
+        {% if not df.empty %}
+        <tfoot class="table-secondary fw-bold"><tr>
+          <td colspan="5">TOTAL</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['TAXABLE_VALUE'].sum()) }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['IGST_AMT'].sum()) }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['CGST_AMT'].sum()) }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['SGST_AMT'].sum()) }}</td>
+          <td class="text-end text-danger">{{ "{:,.2f}".format(df['TOTAL_TAX'].sum()) }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(df['INVOICE_VALUE'].sum()) }}</td>
+        </tr></tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% if not df.empty %}
+<script>
+new Chart(document.getElementById('gstr1Chart'),{type:'doughnut',
+  data:{labels:['CGST','SGST','IGST','Cess'],
+    datasets:[{data:[{{ df['CGST_AMT'].sum()|round(2) }},{{ df['SGST_AMT'].sum()|round(2) }},{{ df['IGST_AMT'].sum()|round(2) }},{{ df['CESS_AMT'].sum()|round(2) }}],
+    backgroundColor:['#1a4e8f','#f4a621','#198754','#dc3545'],borderWidth:2,borderColor:'#fff'}]},
+  options:{plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},cutout:'60%'}
+});
+</script>
+{% endif %}
+{% endblock %}

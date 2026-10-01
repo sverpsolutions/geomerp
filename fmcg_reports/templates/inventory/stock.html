@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Stock Status{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-archive"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?category={{ category }}&status={{ status }}&export=pdf"   class="btn btn-export-pdf btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+    <a href="?category={{ category }}&status={{ status }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','Stock Status')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Category</label>
+      <input type="text" name="category" class="form-control form-control-sm" value="{{ category }}" placeholder="All"></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Stock Status</label>
+      <select name="status" class="form-select form-select-sm">
+        <option value="">All</option>
+        <option value="NORMAL" {% if status=='NORMAL' %}selected{% endif %}>Normal</option>
+        <option value="LOW STOCK" {% if status=='LOW STOCK' %}selected{% endif %}>Low Stock</option>
+        <option value="REORDER REQUIRED" {% if status=='REORDER REQUIRED' %}selected{% endif %}>Reorder Required</option>
+        <option value="OUT OF STOCK" {% if status=='OUT OF STOCK' %}selected{% endif %}>Out of Stock</option>
+      </select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Filter</button></div>
+    <div class="col-auto">
+      <a href="/inventory/stock?status=OUT+OF+STOCK" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-circle"></i> Out of Stock</a>
+      <a href="/inventory/stock?status=REORDER+REQUIRED" class="btn btn-outline-warning btn-sm ms-1"><i class="bi bi-exclamation-triangle"></i> Reorder</a>
+    </div>
+  </form>
+</div>
+
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">Total Items</div><div class="kpi-val">{{ df|length }}</div></div></div>
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">Stock Value (CP)</div><div class="kpi-val text-primary" style="font-size:16px">₹{{ "{:,.0f}".format(df['STOCK_VALUE_CP'].sum()) }}</div></div></div>
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">Stock Value (MRP)</div><div class="kpi-val text-success" style="font-size:16px">₹{{ "{:,.0f}".format(df['STOCK_VALUE_MRP'].sum()) }}</div></div></div>
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">Out of Stock</div><div class="kpi-val text-danger">{{ (df['STOCK_STATUS']=='OUT OF STOCK').sum() }}</div></div></div>
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">Reorder Required</div><div class="kpi-val text-warning">{{ (df['STOCK_STATUS']=='REORDER REQUIRED').sum() }}</div></div></div>
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">Expiring Soon</div><div class="kpi-val text-danger">{{ (df['EXPIRY_STATUS']=='EXPIRING SOON').sum() }}</div></div></div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span><i class="bi bi-table"></i> Stock Status Report</span>
+    <span class="badge bg-light text-dark">{{ df|length }} items</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead>
+          <tr>
+            <th>Code</th><th>Item Name</th><th>EAN</th>
+            <th>Category</th><th>Brand</th><th>Supplier</th>
+            <th class="text-end">QOH</th>
+            <th class="text-end">Reorder Lvl</th>
+            <th class="text-end">Cost (₹)</th>
+            <th class="text-end">MRP (₹)</th>
+            <th class="text-end">SP (₹)</th>
+            <th class="text-end">Stock Val (₹)</th>
+            <th>Stock Status</th>
+            <th>Expiry</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          {% set st = row.STOCK_STATUS %}
+          <tr class="{% if st=='OUT OF STOCK' %}table-danger{% elif st=='REORDER REQUIRED' %}table-warning{% elif st=='LOW STOCK' %}table-info{% endif %}">
+            <td>{{ row.ITEM_CODE }}</td>
+            <td class="fw-bold">{{ row.ITEM_NAME }}</td>
+            <td class="text-muted small">{{ row.EAN_CODE or '-' }}</td>
+            <td><span class="badge bg-light text-dark">{{ row.CATEGORY or '-' }}</span></td>
+            <td>{{ row.BRAND or '-' }}</td>
+            <td>{{ row.SUPPLIER_NAME or '-' }}</td>
+            <td class="text-end fw-bold {% if row.QTY_ON_HAND <= 0 %}text-danger{% elif row.QTY_ON_HAND <= row.REORDER_LEVEL %}text-warning{% else %}text-success{% endif %}">
+              {{ "{:,.2f}".format(row.QTY_ON_HAND) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.REORDER_LEVEL) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.COST_PRICE) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.MRP) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.SALE_PRICE) }}</td>
+            <td class="text-end text-primary">{{ "{:,.2f}".format(row.STOCK_VALUE_CP) }}</td>
+            <td>
+              <span class="badge {% if st=='OUT OF STOCK' %}bg-danger{% elif st=='REORDER REQUIRED' %}bg-warning text-dark{% elif st=='LOW STOCK' %}bg-info{% else %}bg-success{% endif %}">
+                {{ st }}
+              </span>
+            </td>
+            <td>
+              <span class="badge {% if row.EXPIRY_STATUS=='EXPIRED' %}bg-danger{% elif row.EXPIRY_STATUS=='EXPIRING SOON' %}bg-warning text-dark{% else %}bg-light text-dark{% endif %}">
+                {{ row.EXPIRY_STATUS }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="14" class="text-center text-muted py-4">No stock records found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

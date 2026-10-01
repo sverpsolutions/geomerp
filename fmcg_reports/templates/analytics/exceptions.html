@@ -1,0 +1,33 @@
+{% extends 'base.html' %}{% block title %}Exception Report{% endblock %}
+{% block content %}
+<div class="topbar"><h5><i class="bi bi-exclamation-octagon"></i> Exception Report – Anomalies & Alerts</h5></div>
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  {% set critical = df[df['SEVERITY']=='CRITICAL']|length %}
+  {% set high = df[df['SEVERITY']=='HIGH']|length %}
+  {% set medium = df[df['SEVERITY']=='MEDIUM']|length %}
+  <div class="col-md-3"><div class="kpi-card" style="border-left-color:#dc3545"><div class="kpi-lbl">Critical</div><div class="kpi-val text-danger">{{ critical }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card" style="border-left-color:#fd7e14"><div class="kpi-lbl">High</div><div class="kpi-val" style="color:#fd7e14">{{ high }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card" style="border-left-color:#ffc107"><div class="kpi-lbl">Medium</div><div class="kpi-val text-warning">{{ medium }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Exceptions</div><div class="kpi-val">{{ df|length }}</div></div></div>
+</div>
+{% endif %}
+<div class="card"><div class="card-header"><i class="bi bi-table"></i> All Exceptions</div>
+<div class="card-body p-0"><div class="table-scroll">
+<table class="table table-hover table-bordered table-report mb-0">
+  <thead><tr><th>Type</th><th>Severity</th><th>Dept</th><th>Ref#</th><th>Date</th><th>Detail</th><th class="text-end">Amount (₹)</th></tr></thead>
+  <tbody>
+    {% for _, row in df.iterrows() %}
+    <tr class="{% if row.SEVERITY=='CRITICAL' %}table-danger{% elif row.SEVERITY=='HIGH' %}table-warning{% endif %}">
+      <td><span class="badge {% if 'NEGATIVE' in row.EXCEPTION_TYPE %}bg-danger{% elif 'HIGH' in row.EXCEPTION_TYPE %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ row.EXCEPTION_TYPE }}</span></td>
+      <td><span class="badge {% if row.SEVERITY=='CRITICAL' %}bg-danger{% elif row.SEVERITY=='HIGH' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ row.SEVERITY }}</span></td>
+      <td>{{ row.DEPT_CODE or '-' }}</td>
+      <td>{{ row.REFERENCE_NO }}</td>
+      <td>{{ row.TXN_DATE }}</td>
+      <td>{{ row.EXCEPTION_DETAIL }}</td>
+      <td class="text-end fw-bold text-danger">{{ "{:,.2f}".format(row.AMOUNT) }}</td>
+    </tr>
+    {% else %}<tr><td colspan="7" class="text-center text-success py-4"><i class="bi bi-check-circle"></i> No exceptions found! System is clean.</td></tr>{% endfor %}
+  </tbody>
+</table></div></div></div>
+{% endblock %}

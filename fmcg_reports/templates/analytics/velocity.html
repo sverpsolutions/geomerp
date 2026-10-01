@@ -1,0 +1,60 @@
+{% extends 'base.html' %}{% block title %}Item Velocity{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-lightning-charge"></i> {{ title }}</h5>
+  <a href="?velocity={{ velocity }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+</div>
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Velocity Filter</label>
+      <select name="velocity" class="form-select form-select-sm">
+        <option value="">All Items</option>
+        {% for v in ['FAST MOVING','MEDIUM MOVING','SLOW MOVING','VERY SLOW','NON-MOVING'] %}
+        <option value="{{ v }}" {% if velocity==v %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Filter</button></div>
+    <div class="col-auto">
+      <a href="?velocity=NON-MOVING" class="btn btn-outline-danger btn-sm">Non-Moving</a>
+      <a href="?velocity=FAST+MOVING" class="btn btn-outline-success btn-sm ms-1">Fast Moving</a>
+    </div>
+  </form>
+</div>
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  {% set vel_counts = df.groupby('VELOCITY').size().to_dict() %}
+  {% for v, c in vel_counts.items() %}
+  <div class="col-md-2"><div class="kpi-card"><div class="kpi-lbl">{{ v }}</div>
+    <div class="kpi-val {% if 'NON' in v or 'VERY' in v %}text-danger{% elif 'FAST' in v %}text-success{% else %}text-warning{% endif %}">{{ c }}</div>
+  </div></div>
+  {% endfor %}
+</div>
+{% endif %}
+<div class="card"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-table"></i> Item Movement Analysis (Last 90 Days)</span><span class="badge bg-light text-dark">{{ df|length }} items</span></div>
+<div class="card-body p-0"><div class="table-scroll">
+<table class="table table-hover table-bordered table-report mb-0">
+  <thead><tr><th>Item</th><th>Category</th><th>Brand</th><th class="text-end">Stock Qty</th><th class="text-end">Stock Value (₹)</th><th class="text-end">Sold 90D</th><th class="text-end">Sales Val (₹)</th><th>Last Sold</th><th class="text-end">Days Since Sold</th><th>Velocity</th><th class="text-end">Days Stock Left</th></tr></thead>
+  <tbody>
+    {% for _, row in df.iterrows() %}
+    <tr>
+      <td class="fw-bold">{{ row.ITEM_NAME }}</td>
+      <td><span class="badge bg-light text-dark">{{ row.CATEGORY or '-' }}</span></td>
+      <td>{{ row.BRAND or '-' }}</td>
+      <td class="text-end {% if row.STOCK_QTY <= 0 %}text-danger fw-bold{% endif %}">{{ "{:,.2f}".format(row.STOCK_QTY) }}</td>
+      <td class="text-end">{{ "{:,.0f}".format(row.STOCK_VALUE) }}</td>
+      <td class="text-end">{{ "{:,.2f}".format(row.QTY_SOLD_90D) }}</td>
+      <td class="text-end text-success">{{ "{:,.0f}".format(row.SALES_VALUE_90D) }}</td>
+      <td>{{ row.LAST_SOLD_DATE or 'Never' }}</td>
+      <td class="text-end {% if row.DAYS_SINCE_LAST_SOLD > 90 %}text-danger fw-bold{% endif %}">{{ row.DAYS_SINCE_LAST_SOLD if row.DAYS_SINCE_LAST_SOLD < 999 else 'Never' }}</td>
+      <td>
+        {% set v = row.VELOCITY %}
+        <span class="badge {% if v=='FAST MOVING' %}bg-success{% elif v=='MEDIUM MOVING' %}bg-primary{% elif v=='SLOW MOVING' %}bg-warning text-dark{% elif v=='NON-MOVING' %}bg-danger{% else %}bg-secondary{% endif %}">{{ v }}</span>
+      </td>
+      <td class="text-end {% if row.DAYS_STOCK_REMAINING < 30 %}text-danger fw-bold{% elif row.DAYS_STOCK_REMAINING < 60 %}text-warning{% endif %}">
+        {% if row.DAYS_STOCK_REMAINING >= 9999 %}∞{% else %}{{ "{:,.0f}".format(row.DAYS_STOCK_REMAINING) }}d{% endif %}
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="11" class="text-center text-muted py-4">No items found</td></tr>{% endfor %}
+  </tbody>
+</table></div></div></div>
+{% endblock %}

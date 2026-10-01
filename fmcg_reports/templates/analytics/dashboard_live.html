@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% block title %}Live Business Dashboard{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-speedometer2"></i> Live Business Dashboard</h5>
+  <span class="text-muted small" id="clock"></span>
+</div>
+
+<!-- KPI Row 1 - Today -->
+<div class="row g-3 mb-3">
+  <div class="col-md-2">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Today Bills</div>
+      <div class="kpi-val text-primary">{{ kpi.get('TODAY_BILLS', 0)|int }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Today Sales</div>
+      <div class="kpi-val text-success">₹{{ "{:,.0f}".format(kpi.get('TODAY_SALES', 0)) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Today Discount</div>
+      <div class="kpi-val text-warning">₹{{ "{:,.0f}".format(kpi.get('TODAY_DISCOUNT', 0)) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card">
+      <div class="kpi-lbl">MTD Sales</div>
+      <div class="kpi-val text-success">₹{{ "{:,.0f}".format(kpi.get('MTD_SALES', 0)) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card">
+      <div class="kpi-lbl">MTD Bills</div>
+      <div class="kpi-val text-primary">{{ kpi.get('MTD_BILLS', 0)|int }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card">
+      <div class="kpi-lbl">MTD Purchase</div>
+      <div class="kpi-val text-danger">₹{{ "{:,.0f}".format(kpi.get('MTD_PURCHASE', 0)) }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI Row 2 - Stock & Customers -->
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="kpi-card" style="border-left-color:#dc3545">
+      <div class="kpi-lbl">Out of Stock Items</div>
+      <div class="kpi-val text-danger">{{ kpi.get('OUT_OF_STOCK_COUNT', 0)|int }}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px"><a href="/inventory/stock?status=OUT+OF+STOCK" class="text-danger">View items →</a></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card" style="border-left-color:#fd7e14">
+      <div class="kpi-lbl">Reorder Required</div>
+      <div class="kpi-val" style="color:#fd7e14">{{ kpi.get('REORDER_COUNT', 0)|int }}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px"><a href="/inventory/stock?status=REORDER+REQUIRED" style="color:#fd7e14">View items →</a></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Total Stock Value</div>
+      <div class="kpi-val text-primary">₹{{ "{:,.0f}".format(kpi.get('TOTAL_STOCK_VALUE', 0)) }}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px"><a href="/analytics/stock_valuation" class="text-primary">Full report →</a></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Total Customers</div>
+      <div class="kpi-val text-success">{{ kpi.get('TOTAL_CUSTOMERS', 0)|int }}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px"><a href="/customer/segments" class="text-success">Segments →</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts + Quick Reports -->
+<div class="row g-3 mb-3">
+  <!-- 7-Day Trend Chart -->
+  <div class="col-md-7">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-graph-up"></i> Last 7 Days Sales Trend</div>
+      <div class="card-body">
+        <canvas id="trendChart" height="160"></canvas>
+        <div id="noTrend" class="text-center text-muted py-4" style="display:none">
+          <i class="bi bi-graph-up" style="font-size:2rem;opacity:.3"></i>
+          <p class="mt-2 mb-0">No sales data in last 7 days</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Links -->
+  <div class="col-md-5">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-lightning-fill"></i> Quick Actions</div>
+      <div class="card-body d-grid gap-2">
+        <a href="/sales/summary" class="btn btn-outline-primary btn-sm text-start"><i class="bi bi-receipt"></i> Today's Sales Summary</a>
+        <a href="/sales/payment" class="btn btn-outline-success btn-sm text-start"><i class="bi bi-cash-stack"></i> Payment Collection</a>
+        <a href="/gst/gstr3b"   class="btn btn-outline-warning btn-sm text-start"><i class="bi bi-shield-check"></i> GSTR-3B This Month</a>
+        <a href="/gst/itc"      class="btn btn-outline-info btn-sm text-start"><i class="bi bi-receipt-cutoff"></i> ITC This Month</a>
+        <a href="/customer/segments?segment=AT+RISK" class="btn btn-outline-danger btn-sm text-start"><i class="bi bi-person-exclamation"></i> At-Risk Customers</a>
+        <a href="/analytics/exceptions" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-exclamation-triangle"></i> View All Exceptions</a>
+        <a href="/inventory/stock?status=REORDER+REQUIRED" class="btn btn-outline-warning btn-sm text-start"><i class="bi bi-box-seam"></i> Items to Reorder</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- All Reports Grid -->
+<div class="card">
+  <div class="card-header"><i class="bi bi-grid"></i> All Report Modules</div>
+  <div class="card-body">
+    <div class="row g-3">
+
+      <!-- Sales -->
+      <div class="col-md-3">
+        <div class="p-3 rounded h-100" style="background:#f0f7ff;border:1px solid #cce0ff">
+          <h6 class="fw-bold mb-2" style="color:#1a4e8f"><i class="bi bi-receipt-cutoff me-1"></i> Sales Reports</h6>
+          <div class="d-grid gap-1">
+            <a href="/sales/summary" class="btn btn-sm btn-outline-primary text-start py-1">Sales Summary</a>
+            <a href="/sales/detail"  class="btn btn-sm btn-outline-primary text-start py-1">Item-wise Sales</a>
+            <a href="/sales/payment" class="btn btn-sm btn-outline-primary text-start py-1">Payment Collection</a>
+            <a href="/sales/returns" class="btn btn-sm btn-outline-primary text-start py-1">Sales Returns</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer -->
+      <div class="col-md-3">
+        <div class="p-3 rounded h-100" style="background:#fff8f0;border:1px solid #ffd9a8">
+          <h6 class="fw-bold mb-2" style="color:#d97706"><i class="bi bi-people me-1"></i> Customer Reports</h6>
+          <div class="d-grid gap-1">
+            <a href="/customer/list"       class="btn btn-sm btn-outline-warning text-start py-1">Customer Master</a>
+            <a href="/customer/ledger"     class="btn btn-sm btn-outline-warning text-start py-1">Customer Ledger</a>
+            <a href="/customer/loyalty"    class="btn btn-sm btn-outline-warning text-start py-1">Loyalty Points</a>
+            <a href="/customer/segments"   class="btn btn-sm btn-outline-warning text-start py-1">RFM Segments</a>
+            <a href="/customer/trend"      class="btn btn-sm btn-outline-warning text-start py-1">Purchase Trend</a>
+            <a href="/customer/promotions" class="btn btn-sm btn-outline-warning text-start py-1">Smart Promotions</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Purchase + Inventory -->
+      <div class="col-md-3">
+        <div class="p-3 rounded h-100" style="background:#f0fff4;border:1px solid #a8f0c0">
+          <h6 class="fw-bold mb-2" style="color:#15803d"><i class="bi bi-truck me-1"></i> Purchase / Inventory</h6>
+          <div class="d-grid gap-1">
+            <a href="/purchase/summary"          class="btn btn-sm btn-outline-success text-start py-1">Purchase Summary</a>
+            <a href="/purchase/detail"           class="btn btn-sm btn-outline-success text-start py-1">Purchase Detail</a>
+            <a href="/purchase/returns"          class="btn btn-sm btn-outline-success text-start py-1">Purchase Returns</a>
+            <a href="/inventory/stock"           class="btn btn-sm btn-outline-success text-start py-1">Stock Status</a>
+            <a href="/inventory/transfer"        class="btn btn-sm btn-outline-success text-start py-1">Stock Transfer</a>
+            <a href="/analytics/stock_valuation" class="btn btn-sm btn-outline-success text-start py-1">Stock Valuation</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- GST + Analytics -->
+      <div class="col-md-3">
+        <div class="p-3 rounded h-100" style="background:#fdf0ff;border:1px solid #e0a8ff">
+          <h6 class="fw-bold mb-2" style="color:#7c3aed"><i class="bi bi-shield-check me-1"></i> GST / Analytics</h6>
+          <div class="d-grid gap-1">
+            <a href="/gst/hsn_sales"              class="btn btn-sm btn-outline-purple text-start py-1" style="border-color:#7c3aed;color:#7c3aed">HSN Sales</a>
+            <a href="/gst/gstr1"                  class="btn btn-sm btn-outline-purple text-start py-1" style="border-color:#7c3aed;color:#7c3aed">GSTR-1</a>
+            <a href="/gst/gstr3b"                 class="btn btn-sm btn-outline-purple text-start py-1" style="border-color:#7c3aed;color:#7c3aed">GSTR-3B</a>
+            <a href="/gst/itc"                    class="btn btn-sm btn-outline-purple text-start py-1" style="border-color:#7c3aed;color:#7c3aed">ITC Report</a>
+            <a href="/analytics/profitability"    class="btn btn-sm btn-outline-purple text-start py-1" style="border-color:#7c3aed;color:#7c3aed">Profitability</a>
+            <a href="/analytics/velocity"         class="btn btn-sm btn-outline-purple text-start py-1" style="border-color:#7c3aed;color:#7c3aed">Item Velocity</a>
+            <a href="/analytics/sales_vs_purchase" class="btn btn-sm btn-outline-purple text-start py-1" style="border-color:#7c3aed;color:#7c3aed">Sales vs Purchase</a>
+            <a href="/analytics/exceptions"       class="btn btn-sm btn-outline-danger text-start py-1">Exceptions / Alerts</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Live clock
+function updateClock(){
+  document.getElementById('clock').textContent = new Date().toLocaleString('en-IN');
+}
+updateClock(); setInterval(updateClock, 1000);
+
+// 7-day trend chart
+const trendData = {{ trend_data|safe }};
+if (trendData.length > 0) {
+  new Chart(document.getElementById('trendChart'), {
+    type: 'bar',
+    data: {
+      labels: trendData.map(r => r.D),
+      datasets: [
+        {
+          label: 'Sales (₹)',
+          data: trendData.map(r => r.SALES),
+          backgroundColor: '#1a4e8f',
+          borderRadius: 5,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Bills',
+          data: trendData.map(r => r.BILLS),
+          type: 'line',
+          borderColor: '#f4a621',
+          backgroundColor: 'rgba(244,166,33,.15)',
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: '#f4a621',
+          tension: 0.3,
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+      scales: {
+        y:  { position: 'left',  ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } },
+        y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { stepSize: 1 } }
+      }
+    }
+  });
+} else {
+  document.getElementById('trendChart').style.display = 'none';
+  document.getElementById('noTrend').style.display = 'block';
+}
+
+// Auto-refresh dashboard every 5 minutes
+setTimeout(() => location.reload(), 5 * 60 * 1000);
+</script>
+{% endblock %}

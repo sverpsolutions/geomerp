@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+{% block title %}Home – {{ company.company_name }}{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-house-heart me-2"></i>{{ company.company_name }} — Reporting Suite</h5>
+  <div class="d-flex align-items-center gap-3">
+    <span class="text-muted small" id="clock"></span>
+    {% if 'dashboard_live' in allowed_reports %}
+    <a href="/analytics/dashboard_live" class="btn btn-primary btn-sm">
+      <i class="bi bi-speedometer2 me-1"></i> Live Dashboard
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4" id="kpiRow">
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Today's Sales</div>
+      <div class="kpi-val text-success" id="k-sales">Loading…</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Today's Bills</div>
+      <div class="kpi-val text-primary" id="k-bills">—</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Stock Value (Cost)</div>
+      <div class="kpi-val text-info" id="k-stock">—</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Reorder Alerts</div>
+      <div class="kpi-val text-danger" id="k-reorder">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Report Module Cards — only shows cards with at least one allowed report -->
+<div class="row g-3 mb-3">
+
+  {% if 'sales_summary' in allowed_reports or 'sales_detail' in allowed_reports
+     or 'payment_collection' in allowed_reports or 'sales_returns' in allowed_reports %}
+  <div class="col-md-4 col-lg-3">
+    <div class="card h-100">
+      <div class="card-header" style="background:#1a4e8f">
+        <i class="bi bi-receipt-cutoff me-2"></i>Sales Reports
+      </div>
+      <div class="card-body d-grid gap-2 pt-3">
+        {% if 'sales_summary' in allowed_reports %}
+        <a href="/sales/summary" class="btn btn-outline-primary btn-sm text-start">
+          <i class="bi bi-receipt me-2"></i>Sales Summary
+        </a>
+        {% endif %}
+        {% if 'sales_detail' in allowed_reports %}
+        <a href="/sales/detail" class="btn btn-outline-primary btn-sm text-start">
+          <i class="bi bi-list-ul me-2"></i>Item-wise Sales
+        </a>
+        {% endif %}
+        {% if 'payment_collection' in allowed_reports %}
+        <a href="/sales/payment" class="btn btn-outline-primary btn-sm text-start">
+          <i class="bi bi-cash-stack me-2"></i>Payment Collection
+        </a>
+        {% endif %}
+        {% if 'sales_returns' in allowed_reports %}
+        <a href="/sales/returns" class="btn btn-outline-primary btn-sm text-start">
+          <i class="bi bi-arrow-return-left me-2"></i>Sales Returns
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if 'customer_list' in allowed_reports or 'customer_ledger' in allowed_reports
+     or 'customer_loyalty' in allowed_reports or 'customer_segments' in allowed_reports
+     or 'customer_trend' in allowed_reports or 'customer_promotions' in allowed_reports %}
+  <div class="col-md-4 col-lg-3">
+    <div class="card h-100">
+      <div class="card-header" style="background:#b45309">
+        <i class="bi bi-people me-2"></i>Customer Reports
+      </div>
+      <div class="card-body d-grid gap-2 pt-3">
+        {% if 'customer_list' in allowed_reports %}
+        <a href="/customer/list" class="btn btn-outline-warning btn-sm text-start">
+          <i class="bi bi-person-lines-fill me-2"></i>Customer List
+        </a>
+        {% endif %}
+        {% if 'customer_ledger' in allowed_reports %}
+        <a href="/customer/ledger" class="btn btn-outline-warning btn-sm text-start">
+          <i class="bi bi-journal-text me-2"></i>Customer Ledger
+        </a>
+        {% endif %}
+        {% if 'customer_loyalty' in allowed_reports %}
+        <a href="/customer/loyalty" class="btn btn-outline-warning btn-sm text-start">
+          <i class="bi bi-star me-2"></i>Loyalty Points
+        </a>
+        {% endif %}
+        {% if 'customer_segments' in allowed_reports %}
+        <a href="/customer/segments" class="btn btn-outline-warning btn-sm text-start">
+          <i class="bi bi-diagram-3 me-2"></i>RFM Segments
+        </a>
+        {% endif %}
+        {% if 'customer_trend' in allowed_reports %}
+        <a href="/customer/trend" class="btn btn-outline-warning btn-sm text-start">
+          <i class="bi bi-graph-up me-2"></i>Purchase Trend
+        </a>
+        {% endif %}
+        {% if 'customer_promotions' in allowed_reports %}
+        <a href="/customer/promotions" class="btn btn-outline-warning btn-sm text-start">
+          <i class="bi bi-megaphone me-2"></i>Smart Promotions
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if 'purchase_summary' in allowed_reports or 'purchase_detail' in allowed_reports
+     or 'purchase_returns' in allowed_reports %}
+  <div class="col-md-4 col-lg-3">
+    <div class="card h-100">
+      <div class="card-header" style="background:#15803d">
+        <i class="bi bi-truck me-2"></i>Purchase Reports
+      </div>
+      <div class="card-body d-grid gap-2 pt-3">
+        {% if 'purchase_summary' in allowed_reports %}
+        <a href="/purchase/summary" class="btn btn-outline-success btn-sm text-start">
+          <i class="bi bi-truck me-2"></i>Purchase Summary
+        </a>
+        {% endif %}
+        {% if 'purchase_detail' in allowed_reports %}
+        <a href="/purchase/detail" class="btn btn-outline-success btn-sm text-start">
+          <i class="bi bi-box-seam me-2"></i>Purchase Detail
+        </a>
+        {% endif %}
+        {% if 'purchase_returns' in allowed_reports %}
+        <a href="/purchase/returns" class="btn btn-outline-success btn-sm text-start">
+          <i class="bi bi-arrow-repeat me-2"></i>Purchase Returns
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if 'inventory_stock' in allowed_reports or 'stock_transfer' in allowed_reports
+     or 'stock_valuation' in allowed_reports or 'item_velocity' in allowed_reports %}
+  <div class="col-md-4 col-lg-3">
+    <div class="card h-100">
+      <div class="card-header" style="background:#0f766e">
+        <i class="bi bi-archive me-2"></i>Inventory Reports
+      </div>
+      <div class="card-body d-grid gap-2 pt-3">
+        {% if 'inventory_stock' in allowed_reports %}
+        <a href="/inventory/stock" class="btn btn-outline-success btn-sm text-start" style="border-color:#0f766e;color:#0f766e">
+          <i class="bi bi-archive me-2"></i>Stock Status
+        </a>
+        {% endif %}
+        {% if 'stock_transfer' in allowed_reports %}
+        <a href="/inventory/transfer" class="btn btn-outline-success btn-sm text-start" style="border-color:#0f766e;color:#0f766e">
+          <i class="bi bi-arrow-left-right me-2"></i>Stock Transfer
+        </a>
+        {% endif %}
+        {% if 'stock_valuation' in allowed_reports %}
+        <a href="/analytics/stock_valuation" class="btn btn-outline-success btn-sm text-start" style="border-color:#0f766e;color:#0f766e">
+          <i class="bi bi-currency-rupee me-2"></i>Stock Valuation
+        </a>
+        {% endif %}
+        {% if 'item_velocity' in allowed_reports %}
+        <a href="/analytics/velocity" class="btn btn-outline-success btn-sm text-start" style="border-color:#0f766e;color:#0f766e">
+          <i class="bi bi-speedometer2 me-2"></i>Item Velocity
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if 'gst_hsn_sales' in allowed_reports or 'gst_hsn_purchase' in allowed_reports
+     or 'gstr1' in allowed_reports or 'gstr3b' in allowed_reports
+     or 'itc_report' in allowed_reports or 'credit_notes' in allowed_reports %}
+  <div class="col-md-4 col-lg-3">
+    <div class="card h-100">
+      <div class="card-header" style="background:#6d28d9">
+        <i class="bi bi-shield-check me-2"></i>GST / Compliance
+      </div>
+      <div class="card-body d-grid gap-2 pt-3">
+        {% if 'gst_hsn_sales' in allowed_reports %}
+        <a href="/gst/hsn_sales" class="btn btn-sm text-start" style="border:1px solid #6d28d9;color:#6d28d9">
+          <i class="bi bi-file-earmark-spreadsheet me-2"></i>HSN Sales
+        </a>
+        {% endif %}
+        {% if 'gst_hsn_purchase' in allowed_reports %}
+        <a href="/gst/hsn_purchase" class="btn btn-sm text-start" style="border:1px solid #6d28d9;color:#6d28d9">
+          <i class="bi bi-file-earmark-bar-graph me-2"></i>HSN Purchase
+        </a>
+        {% endif %}
+        {% if 'gstr1' in allowed_reports %}
+        <a href="/gst/gstr1" class="btn btn-sm text-start" style="border:1px solid #6d28d9;color:#6d28d9">
+          <i class="bi bi-shield-check me-2"></i>GSTR-1
+        </a>
+        {% endif %}
+        {% if 'gstr3b' in allowed_reports %}
+        <a href="/gst/gstr3b" class="btn btn-sm text-start" style="border:1px solid #6d28d9;color:#6d28d9">
+          <i class="bi bi-shield-fill-check me-2"></i>GSTR-3B
+        </a>
+        {% endif %}
+        {% if 'itc_report' in allowed_reports %}
+        <a href="/gst/itc" class="btn btn-sm text-start" style="border:1px solid #6d28d9;color:#6d28d9">
+          <i class="bi bi-receipt-cutoff me-2"></i>ITC Report
+        </a>
+        {% endif %}
+        {% if 'credit_notes' in allowed_reports %}
+        <a href="/gst/cdnr" class="btn btn-sm text-start" style="border:1px solid #6d28d9;color:#6d28d9">
+          <i class="bi bi-file-earmark-minus me-2"></i>Credit Notes
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if 'sales_trend' in allowed_reports or 'top_items' in allowed_reports
+     or 'category_sales' in allowed_reports or 'supplier_report' in allowed_reports
+     or 'profitability' in allowed_reports or 'sales_vs_purchase' in allowed_reports
+     or 'exceptions' in allowed_reports %}
+  <div class="col-md-4 col-lg-3">
+    <div class="card h-100">
+      <div class="card-header" style="background:#0369a1">
+        <i class="bi bi-graph-up-arrow me-2"></i>Advanced Analytics
+      </div>
+      <div class="card-body d-grid gap-2 pt-3">
+        {% if 'sales_trend' in allowed_reports %}
+        <a href="/analytics/trend" class="btn btn-outline-info btn-sm text-start">
+          <i class="bi bi-graph-up-arrow me-2"></i>Sales Trend
+        </a>
+        {% endif %}
+        {% if 'top_items' in allowed_reports %}
+        <a href="/analytics/top_items" class="btn btn-outline-info btn-sm text-start">
+          <i class="bi bi-trophy me-2"></i>Top Items
+        </a>
+        {% endif %}
+        {% if 'category_sales' in allowed_reports %}
+        <a href="/analytics/category" class="btn btn-outline-info btn-sm text-start">
+          <i class="bi bi-pie-chart me-2"></i>Category Sales
+        </a>
+        {% endif %}
+        {% if 'supplier_report' in allowed_reports %}
+        <a href="/analytics/supplier" class="btn btn-outline-info btn-sm text-start">
+          <i class="bi bi-building me-2"></i>Supplier Report
+        </a>
+        {% endif %}
+        {% if 'profitability' in allowed_reports %}
+        <a href="/analytics/profitability" class="btn btn-outline-info btn-sm text-start">
+          <i class="bi bi-cash-coin me-2"></i>Profitability
+        </a>
+        {% endif %}
+        {% if 'sales_vs_purchase' in allowed_reports %}
+        <a href="/analytics/sales_vs_purchase" class="btn btn-outline-info btn-sm text-start">
+          <i class="bi bi-bar-chart-steps me-2"></i>Sales vs Purchase
+        </a>
+        {% endif %}
+        {% if 'exceptions' in allowed_reports %}
+        <a href="/analytics/exceptions" class="btn btn-outline-danger btn-sm text-start">
+          <i class="bi bi-exclamation-triangle me-2"></i>Exceptions / Alerts
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if 'adv_sales' in allowed_reports or 'adv_purchase' in allowed_reports or 'adv_stock_transfer' in allowed_reports %}
+  <div class="col-md-4 col-lg-3">
+    <div class="card h-100">
+      <div class="card-header" style="background:#b45309;color:#fff">
+        <i class="bi bi-graph-up-arrow me-2"></i>Advanced Reports
+      </div>
+      <div class="card-body d-grid gap-2 pt-3">
+        {% if 'adv_sales' in allowed_reports %}
+        <a href="/adv/sales" class="btn btn-sm text-start" style="border:1px solid #b45309;color:#b45309">
+          <i class="bi bi-graph-up me-2"></i>Advanced Sales
+        </a>
+        {% endif %}
+        {% if 'adv_purchase' in allowed_reports %}
+        <a href="/adv/purchase" class="btn btn-sm text-start" style="border:1px solid #b45309;color:#b45309">
+          <i class="bi bi-truck-front me-2"></i>Advanced Purchase
+        </a>
+        {% endif %}
+        {% if 'adv_stock_transfer' in allowed_reports %}
+        <a href="/adv/stock-transfer" class="btn btn-sm text-start" style="border:1px solid #b45309;color:#b45309">
+          <i class="bi bi-arrow-left-right me-2"></i>Adv Stock Transfer
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if is_superadmin %}
+  <div class="col-md-4 col-lg-3">
+    <div class="card h-100">
+      <div class="card-header" style="background:#92400e">
+        <i class="bi bi-gear-fill me-2"></i>Administration
+      </div>
+      <div class="card-body d-grid gap-2 pt-3">
+        <a href="/admin/company" class="btn btn-sm text-start" style="border:1px solid #92400e;color:#92400e">
+          <i class="bi bi-building-gear me-2"></i>Company Setup
+        </a>
+        <a href="/admin/users" class="btn btn-sm text-start" style="border:1px solid #92400e;color:#92400e">
+          <i class="bi bi-people-fill me-2"></i>User Management
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+setInterval(() => {
+  const el = document.getElementById('clock');
+  if (el) el.textContent = new Date().toLocaleString('en-IN');
+}, 1000);
+
+fetch('/api/dashboard').then(r => r.json()).then(data => {
+  if (data && data[0]) {
+    const d = data[0];
+    document.getElementById('k-sales').textContent   = '₹' + (d.TODAY_SALES||0).toLocaleString('en-IN',{maximumFractionDigits:0});
+    document.getElementById('k-bills').textContent   = d.TODAY_BILLS || 0;
+    document.getElementById('k-stock').textContent   = '₹' + (d.TOTAL_STOCK_VALUE||0).toLocaleString('en-IN',{maximumFractionDigits:0});
+    document.getElementById('k-reorder').textContent = (d.REORDER_COUNT||0) + ' items';
+  }
+}).catch(() => {
+  document.getElementById('k-sales').textContent = '—';
+});
+</script>
+{% endblock %}

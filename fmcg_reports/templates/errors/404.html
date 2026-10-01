@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Report Not Found – RetailWizard{% endblock %}
+{% block content %}
+<div class="error-page">
+  <div class="error-code">404</div>
+  <div class="error-msg">Report Not Available</div>
+  <p class="text-muted mt-3">
+    The report at <code>{{ path }}</code> could not be found.<br>
+    It may have been moved, renamed, or the URL is incorrect.
+  </p>
+
+  <div class="mt-4 d-flex flex-wrap gap-2 justify-content-center">
+    <a href="/" class="btn btn-primary"><i class="bi bi-house"></i> Go to Dashboard</a>
+    <a href="javascript:history.back()" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Go Back</a>
+  </div>
+
+  <!-- Available reports quick-list -->
+  <div class="card mt-5 text-start mx-auto" style="max-width:620px">
+    <div class="card-header"><i class="bi bi-list-ul"></i> Available Reports</div>
+    <div class="card-body">
+      <div class="row g-2" style="font-size:12.5px">
+        <div class="col-6">
+          <p class="fw-bold text-muted mb-1" style="font-size:10px;text-transform:uppercase">Sales</p>
+          <a href="/sales/summary" class="d-block text-decoration-none mb-1"><i class="bi bi-receipt me-1"></i>Sales Summary</a>
+          <a href="/sales/detail"  class="d-block text-decoration-none mb-1"><i class="bi bi-list-ul me-1"></i>Sales Detail</a>
+          <a href="/sales/payment" class="d-block text-decoration-none mb-1"><i class="bi bi-cash-stack me-1"></i>Payment Collection</a>
+          <a href="/sales/returns" class="d-block text-decoration-none mb-1"><i class="bi bi-arrow-return-left me-1"></i>Sales Returns</a>
+          <p class="fw-bold text-muted mb-1 mt-3" style="font-size:10px;text-transform:uppercase">Purchase</p>
+          <a href="/purchase/summary" class="d-block text-decoration-none mb-1"><i class="bi bi-truck me-1"></i>Purchase Summary</a>
+          <a href="/purchase/detail"  class="d-block text-decoration-none mb-1"><i class="bi bi-box-seam me-1"></i>Purchase Detail</a>
+          <a href="/purchase/returns" class="d-block text-decoration-none mb-1"><i class="bi bi-arrow-repeat me-1"></i>Purchase Returns</a>
+          <p class="fw-bold text-muted mb-1 mt-3" style="font-size:10px;text-transform:uppercase">GST</p>
+          <a href="/gst/hsn_sales"    class="d-block text-decoration-none mb-1"><i class="bi bi-file-earmark-spreadsheet me-1"></i>HSN Sales</a>
+          <a href="/gst/gstr1"        class="d-block text-decoration-none mb-1"><i class="bi bi-shield-check me-1"></i>GSTR-1</a>
+          <a href="/gst/gstr3b"       class="d-block text-decoration-none mb-1"><i class="bi bi-shield-fill-check me-1"></i>GSTR-3B</a>
+          <a href="/gst/itc"          class="d-block text-decoration-none mb-1"><i class="bi bi-receipt-cutoff me-1"></i>ITC Report</a>
+        </div>
+        <div class="col-6">
+          <p class="fw-bold text-muted mb-1" style="font-size:10px;text-transform:uppercase">Customer</p>
+          <a href="/customer/list"       class="d-block text-decoration-none mb-1"><i class="bi bi-people me-1"></i>Customer List</a>
+          <a href="/customer/ledger"     class="d-block text-decoration-none mb-1"><i class="bi bi-journal-text me-1"></i>Customer Ledger</a>
+          <a href="/customer/loyalty"    class="d-block text-decoration-none mb-1"><i class="bi bi-star me-1"></i>Loyalty Points</a>
+          <a href="/customer/segments"   class="d-block text-decoration-none mb-1"><i class="bi bi-diagram-3 me-1"></i>RFM Segments</a>
+          <a href="/customer/promotions" class="d-block text-decoration-none mb-1"><i class="bi bi-megaphone me-1"></i>Smart Promotions</a>
+          <p class="fw-bold text-muted mb-1 mt-3" style="font-size:10px;text-transform:uppercase">Inventory & Analytics</p>
+          <a href="/inventory/stock"            class="d-block text-decoration-none mb-1"><i class="bi bi-archive me-1"></i>Stock Status</a>
+          <a href="/analytics/stock_valuation"  class="d-block text-decoration-none mb-1"><i class="bi bi-currency-rupee me-1"></i>Stock Valuation</a>
+          <a href="/analytics/velocity"         class="d-block text-decoration-none mb-1"><i class="bi bi-lightning-charge me-1"></i>Item Velocity</a>
+          <a href="/analytics/profitability"    class="d-block text-decoration-none mb-1"><i class="bi bi-cash-coin me-1"></i>Profitability</a>
+          <a href="/analytics/exceptions"       class="d-block text-decoration-none mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Exceptions</a>
+          <a href="/analytics/dashboard_live"   class="d-block text-decoration-none mb-1"><i class="bi bi-speedometer2 me-1"></i>Live Dashboard</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

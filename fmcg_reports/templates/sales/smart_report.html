@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+{% block title %}Smart Sales Report{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-bar-chart-line"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?from_date={{ from_date }}&to_date={{ to_date }}&dept={{ dept }}&category={{ category }}&brand={{ brand }}&mobile={{ mobile }}&mode={{ mode }}&export=excel"
+       class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','Smart Sales Report')">
+      <i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1">From Date</label>
+      <input type="date" name="from_date" class="form-control form-control-sm" value="{{ from_date }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1">To Date</label>
+      <input type="date" name="to_date" class="form-control form-control-sm" value="{{ to_date }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1">Department</label>
+      <select name="dept" class="form-select form-select-sm" style="min-width:110px">
+        <option value="">All Depts</option>
+        {% for d in depts_list %}<option value="{{ d }}" {% if dept==d %}selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1">Category</label>
+      <select name="category" class="form-select form-select-sm" style="min-width:130px">
+        <option value="">All Categories</option>
+        {% for c in categories %}<option value="{{ c }}" {% if category==c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1">Brand</label>
+      <select name="brand" class="form-select form-select-sm" style="min-width:120px">
+        <option value="">All Brands</option>
+        {% for b in brands_list %}<option value="{{ b }}" {% if brand==b %}selected{% endif %}>{{ b }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1">Mobile / Customer</label>
+      <input type="tel" name="mobile" class="form-control form-control-sm" value="{{ mobile }}" placeholder="Mobile or Code" style="width:140px">
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-bold mb-1">Mode</label>
+      <select name="mode" class="form-select form-select-sm">
+        <option value="summary" {% if mode=='summary' %}selected{% endif %}>Summary</option>
+        <option value="detail"  {% if mode=='detail'  %}selected{% endif %}>Detail</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Filter</button>
+    </div>
+  </form>
+</div>
+
+<!-- Mode Indicator Badges -->
+<div class="mb-2 d-flex gap-2 flex-wrap align-items-center" style="font-size:12px">
+  <a href="?from_date={{ from_date }}&to_date={{ to_date }}&dept={{ dept }}&category={{ category }}&brand={{ brand }}&mobile={{ mobile }}&mode=summary"
+     class="badge {% if mode=='summary' %}bg-primary{% else %}bg-secondary{% endif %} text-decoration-none" style="font-size:12px">
+    <i class="bi bi-layers"></i> Summary Mode</a>
+  <a href="?from_date={{ from_date }}&to_date={{ to_date }}&dept={{ dept }}&category={{ category }}&brand={{ brand }}&mobile={{ mobile }}&mode=detail"
+     class="badge {% if mode=='detail' %}bg-success{% else %}bg-secondary{% endif %} text-decoration-none" style="font-size:12px">
+    <i class="bi bi-list-ul"></i> Detail Mode</a>
+  {% if not df.empty %}
+  <span class="ms-2 text-muted">{{ df|length }} rows</span>
+  {% endif %}
+</div>
+
+{% if not df.empty %}
+
+<!-- KPI Cards -->
+{% if mode == 'summary' %}
+<div class="row g-2 mb-3">
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#198754">
+      <div class="kpi-lbl">Customers</div>
+      <div class="kpi-val">{{ df['CUSTOMER_CODE'].nunique() }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#0d6efd">
+      <div class="kpi-lbl">Total Bills</div>
+      <div class="kpi-val">{{ "{:,}".format(df['BILL_COUNT'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#6f42c1">
+      <div class="kpi-lbl">Total Qty</div>
+      <div class="kpi-val">{{ "{:,.0f}".format(df['TOTAL_QTY'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#fd7e14">
+      <div class="kpi-lbl">Gross Amount</div>
+      <div class="kpi-val">₹{{ "{:,.0f}".format(df['GROSS_AMOUNT'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#dc3545">
+      <div class="kpi-lbl">Discount</div>
+      <div class="kpi-val text-danger">₹{{ "{:,.0f}".format(df['TOTAL_DISC'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#198754">
+      <div class="kpi-lbl">Net Amount</div>
+      <div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['NET_AMOUNT'].sum()) }}</div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="row g-2 mb-3">
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#198754">
+      <div class="kpi-lbl">Line Items</div>
+      <div class="kpi-val">{{ "{:,}".format(df|length) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#0d6efd">
+      <div class="kpi-lbl">Unique Bills</div>
+      <div class="kpi-val">{{ df['BILL_NO'].nunique() }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#6f42c1">
+      <div class="kpi-lbl">Total Qty</div>
+      <div class="kpi-val">{{ "{:,.0f}".format(df['QTY'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#fd7e14">
+      <div class="kpi-lbl">Gross Amount</div>
+      <div class="kpi-val">₹{{ "{:,.0f}".format(df['AMOUNT'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#dc3545">
+      <div class="kpi-lbl">Discount</div>
+      <div class="kpi-val text-danger">₹{{ "{:,.0f}".format(df['DISC_AMOUNT'].sum()) }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card" style="border-left-color:#198754">
+      <div class="kpi-lbl">Net Amount</div>
+      <div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['TOTAL'].sum()) }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if mode == 'summary' %}
+<!-- ══════════════════ SUMMARY TABLE ══════════════════ -->
+{% set prev_dept = namespace(val='') %}
+{% set prev_cat  = namespace(val='') %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span><i class="bi bi-layers"></i> Sales Summary — Dept › Category › Customer</span>
+    <span class="badge bg-light text-dark">{{ df|length }} rows</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0" style="font-size:12px">
+        <thead>
+          <tr>
+            <th>Dept</th>
+            <th>Category</th>
+            <th>Customer Code</th>
+            <th>Customer Name</th>
+            <th class="text-center">Bills</th>
+            <th class="text-end">Qty</th>
+            <th class="text-end">Gross (₹)</th>
+            <th class="text-end">Discount (₹)</th>
+            <th class="text-end">Net Amount (₹)</th>
+            <th class="text-end">Profit (₹)</th>
+            <th class="text-end">Margin %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set dept_group = namespace(val='') %}
+          {% set cat_group  = namespace(val='') %}
+          {% set dept_net   = namespace(val=0) %}
+          {% set cat_net    = namespace(val=0) %}
+
+          {% for _, row in df.iterrows() %}
+
+          {% if row.DEPT_CODE != dept_group.val %}
+            {% if dept_group.val != '' %}
+            <!-- Dept subtotal -->
+            <tr style="background:#e8f0fe;font-weight:700;font-size:11.5px">
+              <td colspan="8" class="text-end">Dept {{ dept_group.val }} Total</td>
+              <td class="text-end text-primary">₹{{ "{:,.2f}".format(dept_net.val) }}</td>
+              <td colspan="2"></td>
+            </tr>
+            {% endif %}
+            {% set dept_group.val = row.DEPT_CODE %}
+            {% set dept_net.val   = 0 %}
+            {% set cat_group.val  = '' %}
+          {% endif %}
+
+          {% if row.CATEGORY != cat_group.val %}
+            {% if cat_group.val != '' %}
+            <!-- Category subtotal -->
+            <tr style="background:#f0f4ff;font-weight:600;font-size:11.5px">
+              <td></td>
+              <td colspan="7" class="text-end text-secondary">↳ {{ cat_group.val }} Total</td>
+              <td class="text-end text-secondary">₹{{ "{:,.2f}".format(cat_net.val) }}</td>
+              <td colspan="2"></td>
+            </tr>
+            {% endif %}
+            {% set cat_group.val = row.CATEGORY %}
+            {% set cat_net.val   = 0 %}
+          {% endif %}
+
+          <tr>
+            <td>{{ row.DEPT_CODE }}</td>
+            <td>{{ row.CATEGORY or '—' }}</td>
+            <td>{{ row.CUSTOMER_CODE or '—' }}</td>
+            <td>{{ row.CUSTOMER_NAME or '—' }}</td>
+            <td class="text-center">{{ row.BILL_COUNT }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.TOTAL_QTY) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.GROSS_AMOUNT) }}</td>
+            <td class="text-end text-danger">{{ "{:,.2f}".format(row.TOTAL_DISC) }}</td>
+            <td class="text-end fw-bold text-success">{{ "{:,.2f}".format(row.NET_AMOUNT) }}</td>
+            <td class="text-end {% if row.GROSS_PROFIT > 0 %}text-success{% else %}text-danger{% endif %}">
+              {{ "{:,.2f}".format(row.GROSS_PROFIT) }}</td>
+            <td class="text-end">
+              <span class="badge {% if row.AVG_MARGIN >= 20 %}bg-success{% elif row.AVG_MARGIN >= 10 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                {{ "{:.1f}".format(row.AVG_MARGIN) }}%</span></td>
+          </tr>
+
+          {% set cat_net.val  = cat_net.val  + row.NET_AMOUNT %}
+          {% set dept_net.val = dept_net.val + row.NET_AMOUNT %}
+          {% endfor %}
+
+          {% if cat_group.val != '' %}
+          <tr style="background:#f0f4ff;font-weight:600;font-size:11.5px">
+            <td></td>
+            <td colspan="7" class="text-end text-secondary">↳ {{ cat_group.val }} Total</td>
+            <td class="text-end text-secondary">₹{{ "{:,.2f}".format(cat_net.val) }}</td>
+            <td colspan="2"></td>
+          </tr>
+          {% endif %}
+          {% if dept_group.val != '' %}
+          <tr style="background:#e8f0fe;font-weight:700;font-size:11.5px">
+            <td colspan="8" class="text-end">Dept {{ dept_group.val }} Total</td>
+            <td class="text-end text-primary">₹{{ "{:,.2f}".format(dept_net.val) }}</td>
+            <td colspan="2"></td>
+          </tr>
+          {% endif %}
+        </tbody>
+        <tfoot class="fw-bold" style="background:#343a40;color:#fff">
+          <tr>
+            <td colspan="4">GRAND TOTAL</td>
+            <td class="text-center">{{ "{:,}".format(df['BILL_COUNT'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['TOTAL_QTY'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['GROSS_AMOUNT'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['TOTAL_DISC'].sum()) }}</td>
+            <td class="text-end" style="color:#90ee90">{{ "{:,.2f}".format(df['NET_AMOUNT'].sum()) }}</td>
+            <td class="text-end" style="color:#90ee90">{{ "{:,.2f}".format(df['GROSS_PROFIT'].sum()) }}</td>
+            <td class="text-end">
+              {% set overall_margin = (df['GROSS_PROFIT'].sum() / df['NET_AMOUNT'].sum() * 100) if df['NET_AMOUNT'].sum() > 0 else 0 %}
+              {{ "{:.1f}".format(overall_margin) }}%
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- ══════════════════ DETAIL TABLE ══════════════════ -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span><i class="bi bi-list-ul"></i> Sales Detail — Item Level</span>
+    <span class="badge bg-light text-dark">{{ df|length }} rows</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0" style="font-size:11.5px">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Bill No</th>
+            <th>Dept</th>
+            <th>Customer</th>
+            <th>Item Code</th>
+            <th>Item Name</th>
+            <th>Category</th>
+            <th>Brand</th>
+            <th class="text-end">Qty</th>
+            <th class="text-end">Rate (₹)</th>
+            <th class="text-end">MRP (₹)</th>
+            <th class="text-end">Amount (₹)</th>
+            <th class="text-end">Disc (₹)</th>
+            <th class="text-end">Total (₹)</th>
+            <th class="text-end">Profit (₹)</th>
+            <th class="text-end">Margin %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set prev_bill = namespace(val='') %}
+          {% for _, row in df.iterrows() %}
+          {% set is_new_bill = (row.BILL_NO|string != prev_bill.val) %}
+          <tr {% if is_new_bill and not loop.first %}style="border-top:2px solid #dee2e6"{% endif %}>
+            <td>{{ row.BILL_DATE }}</td>
+            <td class="fw-bold">{{ row.BILL_NO }}</td>
+            <td>{{ row.DEPT_CODE }}</td>
+            <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                title="{{ row.CUSTOMER_NAME }}">
+              {{ row.CUSTOMER_NAME or '—' }}</td>
+            <td>{{ row.ITEM_CODE }}</td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                title="{{ row.ITEM_NAME }}">
+              {{ row.ITEM_NAME }}</td>
+            <td>{{ row.CATEGORY or '—' }}</td>
+            <td>{{ row.BRAND or '—' }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.QTY) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.RATE) }}</td>
+            <td class="text-end text-muted">{{ "{:,.2f}".format(row.MRP) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.AMOUNT) }}</td>
+            <td class="text-end text-danger">{{ "{:,.2f}".format(row.DISC_AMOUNT) }}</td>
+            <td class="text-end fw-bold text-success">{{ "{:,.2f}".format(row.TOTAL) }}</td>
+            <td class="text-end {% if row.GROSS_PROFIT > 0 %}text-success{% else %}text-danger{% endif %}">
+              {{ "{:,.2f}".format(row.GROSS_PROFIT) }}</td>
+            <td class="text-end">
+              <span class="badge {% if row.MARGIN_PCT >= 20 %}bg-success{% elif row.MARGIN_PCT >= 10 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                {{ "{:.1f}".format(row.MARGIN_PCT) }}%</span></td>
+          </tr>
+          {% set prev_bill.val = row.BILL_NO|string %}
+          {% endfor %}
+        </tbody>
+        <tfoot class="fw-bold" style="background:#343a40;color:#fff">
+          <tr>
+            <td colspan="8">GRAND TOTAL</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['QTY'].sum()) }}</td>
+            <td colspan="2"></td>
+            <td class="text-end">{{ "{:,.2f}".format(df['AMOUNT'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['DISC_AMOUNT'].sum()) }}</td>
+            <td class="text-end" style="color:#90ee90">{{ "{:,.2f}".format(df['TOTAL'].sum()) }}</td>
+            <td class="text-end" style="color:#90ee90">{{ "{:,.2f}".format(df['GROSS_PROFIT'].sum()) }}</td>
+            <td class="text-end">
+              {% set overall_margin = (df['GROSS_PROFIT'].sum() / df['TOTAL'].sum() * 100) if df['TOTAL'].sum() > 0 else 0 %}
+              {{ "{:.1f}".format(overall_margin) }}%
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="alert alert-warning mt-3"><i class="bi bi-exclamation-triangle"></i> No sales data found for the selected filters.</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Purchase Summary{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-truck"></i> {{ title }}</h5>
+  <div class="d-flex gap-2">
+    <a href="?from_date={{ from_date }}&to_date={{ to_date }}&export=pdf"   class="btn btn-export-pdf btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+    <a href="?from_date={{ from_date }}&to_date={{ to_date }}&export=excel" class="btn btn-export-excel btn-sm"><i class="bi bi-file-excel"></i> Excel</a>
+    <button class="btn btn-export-email btn-sm" onclick="openEmailModal('{{ request.url }}','Purchase Summary')"><i class="bi bi-envelope"></i> Email</button>
+  </div>
+</div>
+
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label fw-bold mb-1">From Date</label>
+      <input type="date" name="from_date" class="form-control form-control-sm" value="{{ from_date }}"></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">To Date</label>
+      <input type="date" name="to_date" class="form-control form-control-sm" value="{{ to_date }}"></div>
+    <div class="col-auto"><label class="form-label fw-bold mb-1">Supplier Name</label>
+      <input type="text" name="supplier" class="form-control form-control-sm" value="{{ supplier }}" placeholder="Search supplier..."></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Filter</button></div>
+  </form>
+</div>
+
+{% if not df.empty %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total GRNs</div><div class="kpi-val">{{ df|length }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Purchase Value</div><div class="kpi-val text-success">₹{{ "{:,.0f}".format(df['GRAND_TOTAL'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Discount</div><div class="kpi-val text-warning">₹{{ "{:,.0f}".format(df['TOTAL_DISCOUNT'].sum()) }}</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-lbl">Total Qty</div><div class="kpi-val text-primary">{{ "{:,.0f}".format(df['TOTAL_QTY'].sum()) }}</div></div></div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between">
+    <span><i class="bi bi-table"></i> GRN Purchase Summary</span>
+    <span class="badge bg-light text-dark">{{ df|length }} records</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-scroll">
+      <table class="table table-hover table-bordered table-report mb-0">
+        <thead>
+          <tr>
+            <th>GRN Date</th><th>GRN#</th><th>Invoice#</th>
+            <th>Supplier</th><th>Phone</th><th>Dept</th>
+            <th class="text-end">Qty</th>
+            <th class="text-end">Subtotal (₹)</th>
+            <th class="text-end">Discount (₹)</th>
+            <th class="text-end">Tax (₹)</th>
+            <th class="text-end">Grand Total (₹)</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for _, row in df.iterrows() %}
+          <tr>
+            <td>{{ row.GRN_DATE }}</td>
+            <td>{{ row.GRN_NO }}</td>
+            <td>{{ row.SUPPLIER_INVOICE_NO or '-' }}</td>
+            <td class="fw-bold">{{ row.SUPPLIER_NAME }}</td>
+            <td>{{ row.SUPPLIER_PHONE or '-' }}</td>
+            <td>{{ row.DEPT_CODE }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.TOTAL_QTY) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.SUBTOTAL) }}</td>
+            <td class="text-end text-warning">{{ "{:,.2f}".format(row.TOTAL_DISCOUNT) }}</td>
+            <td class="text-end text-danger">{{ "{:,.2f}".format(row.TOTAL_TAX) }}</td>
+            <td class="text-end fw-bold text-success">{{ "{:,.2f}".format(row.GRAND_TOTAL) }}</td>
+            <td class="text-muted small">{{ row.REMARKS or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="12" class="text-center text-muted py-4">No purchase records found</td></tr>
+          {% endfor %}
+        </tbody>
+        {% if not df.empty %}
+        <tfoot class="table-secondary fw-bold">
+          <tr>
+            <td colspan="6">TOTAL</td>
+            <td class="text-end">{{ "{:,.0f}".format(df['TOTAL_QTY'].sum()) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(df['SUBTOTAL'].sum()) }}</td>
+            <td class="text-end text-warning">{{ "{:,.2f}".format(df['TOTAL_DISCOUNT'].sum()) }}</td>
+            <td class="text-end text-danger">{{ "{:,.2f}".format(df['TOTAL_TAX'].sum()) }}</td>
+            <td class="text-end text-success">{{ "{:,.2f}".format(df['GRAND_TOTAL'].sum()) }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

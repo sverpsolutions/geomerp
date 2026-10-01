@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}User Management – {{ company.company_name }}{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5><i class="bi bi-people-fill me-2"></i>User Management</h5>
+  <a href="/admin/users/new" class="btn btn-primary btn-sm">
+    <i class="bi bi-person-plus me-1"></i> Add New User
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-list-ul me-2"></i>All Users ({{ users | length }})</span>
+    <a href="/admin/company" class="btn btn-sm btn-outline-light">
+      <i class="bi bi-building-gear me-1"></i> Company Setup
+    </a>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover table-report mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Reports Access</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td class="text-muted">{{ loop.index }}</td>
+            <td>
+              <i class="bi bi-person-circle me-1 text-primary"></i>
+              <strong>{{ u.username }}</strong>
+            </td>
+            <td>
+              {% if u.role == 'superadmin' %}
+              <span class="badge" style="background:#f4a621;color:#333">
+                <i class="bi bi-shield-fill-check me-1"></i>SuperAdmin
+              </span>
+              {% else %}
+              <span class="badge bg-primary">
+                <i class="bi bi-person me-1"></i>{{ u.role | title }}
+              </span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.role == 'superadmin' %}
+              <span class="text-success small fw-bold"><i class="bi bi-infinity me-1"></i>All Reports</span>
+              {% else %}
+              <span class="badge bg-light text-dark border">{{ u.report_count }} reports</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.is_active %}
+              <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+              {% else %}
+              <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Inactive</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">
+              {{ u.created_at.strftime('%d/%m/%Y') if u.created_at else '—' }}
+            </td>
+            <td class="text-center">
+              <div class="d-flex gap-1 justify-content-center">
+                <a href="/admin/users/{{ u.id }}/edit"
+                   class="btn btn-sm btn-outline-primary" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                {% if u.role != 'superadmin' %}
+                <form method="POST" action="/admin/users/{{ u.id }}/toggle" class="d-inline">
+                  <button type="submit" title="{{ 'Deactivate' if u.is_active else 'Activate' }}"
+                          class="btn btn-sm {{ 'btn-outline-warning' if u.is_active else 'btn-outline-success' }}">
+                    <i class="bi {{ 'bi-pause-circle' if u.is_active else 'bi-play-circle' }}"></i>
+                  </button>
+                </form>
+                <form method="POST" action="/admin/users/{{ u.id }}/delete" class="d-inline"
+                      onsubmit="return confirm('Delete user {{ u.username }}? This cannot be undone.')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center text-muted py-4">No users found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
