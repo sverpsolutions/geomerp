@@ -9,7 +9,7 @@ from app.routers import (
     auth, users, roles, masters, products, customers, suppliers,
     billing, estimates, outlets, sync, reports, company, states,
     warehouse, packaging, import_export, wms, purchases, channels,
-    audit_logs, inventory, logistic, stock_reports, shop
+    audit_logs, inventory, logistic, stock_reports, shop, returns
 )
 
 _settings = get_settings()
@@ -74,6 +74,7 @@ app.include_router(audit_logs.router,    prefix=API_PREFIX)
 app.include_router(inventory.router,     prefix=API_PREFIX)
 app.include_router(logistic.router,      prefix=API_PREFIX)
 app.include_router(stock_reports.router, prefix=API_PREFIX)
+app.include_router(returns.router,       prefix=API_PREFIX)
 app.include_router(shop.router,          prefix=API_PREFIX)
 
 from fastapi.staticfiles import StaticFiles

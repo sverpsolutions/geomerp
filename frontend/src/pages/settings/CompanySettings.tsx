@@ -13,6 +13,8 @@ const CompanySettingsPage = () => {
     logo_path: '',
     company_cin: '',
     company_tan: '',
+    gstin: '',
+    company_state: '',
     item_code_format: '[PREFIX]-[BRAND]-[VARIANT]-[SIZE]',
     enable_gst: true,
     show_product_img: true,
@@ -162,6 +164,29 @@ const CompanySettingsPage = () => {
                   name="company_tan"
                   value={settings.company_tan}
                   onChange={handleChange}
+                  className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">GSTIN</label>
+                <input
+                  type="text"
+                  name="gstin"
+                  value={settings.gstin || ''}
+                  onChange={handleChange}
+                  maxLength={15}
+                  placeholder="Printed on credit notes / invoices"
+                  className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent uppercase"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">State</label>
+                <input
+                  type="text"
+                  name="company_state"
+                  value={settings.company_state || ''}
+                  onChange={handleChange}
+                  placeholder="e.g. Delhi"
                   className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent"
                 />
               </div>

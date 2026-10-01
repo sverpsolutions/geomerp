@@ -34,6 +34,8 @@ class CompanySetting(base):
     logo_path = Column(String, nullable=True)
     company_cin = Column(String, nullable=True)
     company_tan = Column(String, nullable=True)
+    gstin = Column(String(20), nullable=True)
+    company_state = Column(String(50), nullable=True)
     item_code_format = Column(String, default="[PREFIX]-[BRAND]-[VARIANT]-[SIZE]")
     hsn_code_length = Column(Integer, default=8)
     strict_hsn_validation = Column(Boolean, default=False)

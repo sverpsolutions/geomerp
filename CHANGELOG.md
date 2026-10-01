@@ -2,6 +2,23 @@
 
 Versions follow `MAJOR.MINOR.PATCH`. New work lands on the `testing` branch as `-beta.N` tags; once verified it is merged to `main` and tagged without the suffix.
 
+## v1.2.0-beta.1 — 2026-10-01 (testing) — Sales Return Phase 1
+
+### Added
+- **Sales Return / Credit Note** (Billing → Sales Return): find any bill (outlet POS or HO), enter return qty per item, reason, refund method (cash / adjust against bill due). Rules follow NCG `SalesReturns`: stock back to HO + `stock_ledger` `sale_return`, credit note `CN-HO-YYYY-NNNN`, GST-inclusive rate with taxable/GST extracted backwards.
+- Hardening beyond NCG: server computes all amounts (client sends only product + qty); returnable qty = sold − already returned, row-locked (HTTP 409 on over-return); refunds never exceed what was paid; cancel reverses stock via ledger and restores bill due; admin/manager only for create/cancel.
+- **Credit Notes** list (Billing → Credit Notes): HO credit notes + 123 synced outlet POS returns, date/source/search filters, print, cancel (HO only).
+- **Credit note print**: port of NCG `sales_returns/print.php` — A4 "Refund Bill", against-bill bar, reason, parties, HSN-wise GST summary, amount in words (Lakh/Crore), signatory stamp.
+- Company Profile: **GSTIN** and **State** fields (printed on credit notes).
+- Migration `c3d9e1a2b4f5`: `unit_wise_invoices.ref_invoice_no / return_reason / refund_method / adjusted_amount`; `company_settings.gstin / company_state`.
+
+### Fixed
+- Creating invoices, payments, invoice cancel, delete requests and estimate create/convert/close crashed: routers read `current_user.id`, which did not exist (`core/dependencies.py`).
+
+### Notes
+- Outlet POS lines store the outlet item code in `product_id`; HO stock is resolved by `item_code` (99% match). Unmatched lines get a credit note but no stock movement (flagged on screen).
+- Outlet POS returns (`RTN_*`) carry no original bill number, so a bill returned at the outlet cannot be detected — the screen warns the user.
+
 ## v1.1.0-beta.4 — 2026-10-01 (testing)
 
 ### Tooling

@@ -11,6 +11,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 class current_user_dep:
     def __init__(self, user_id: int, role: str, username: str, role_id: int | None = None):
         self.user_id = user_id
+        self.id = user_id  # billing/estimates routers read .id
         self.role = role
         self.username = username
         self.role_id = role_id

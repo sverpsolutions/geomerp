@@ -27,6 +27,8 @@ class CompanySettingBase(BaseModel):
     show_product_img: bool = True
     hsn_code_length: int = 8
     strict_hsn_validation: bool = False
+    gstin: Optional[str] = None
+    company_state: Optional[str] = None
 
 class CompanySettingUpdate(CompanySettingBase):
     pass

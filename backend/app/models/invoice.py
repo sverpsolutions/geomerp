@@ -32,6 +32,11 @@ class invoice(base):
     is_interstate: Mapped[bool] = mapped_column(Boolean, default=False)
     notes: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="unpaid")
+    # Sales return / credit note (invoice_type='return' created at HO)
+    ref_invoice_no: Mapped[str | None] = mapped_column(String(30))
+    return_reason: Mapped[str | None] = mapped_column(String(255))
+    refund_method: Mapped[str | None] = mapped_column(String(20))  # cash | adjust
+    adjusted_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
     created_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

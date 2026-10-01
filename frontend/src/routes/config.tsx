@@ -81,6 +81,8 @@ import SalesVsPurchaseReport from '../pages/reports/SalesVsPurchaseReport';
 import ItemVelocityReport from '../pages/reports/ItemVelocityReport';
 import CustomerAnalyticsReport from '../pages/reports/CustomerAnalyticsReport';
 import BillEntry from '../pages/accounts/BillEntry';
+import SalesReturn from '../pages/billing/SalesReturn';
+import CreditNotes from '../pages/billing/CreditNotes';
 import Schemes from '../pages/promotions/Schemes';
 import BulkDiscount from '../pages/promotions/BulkDiscount';
 import ProcessingDashboard from '../pages/processing/ProcessingDashboard';
@@ -205,8 +207,8 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '1304', path: '/admin/shop/reports', component: ShopReports, title: 'Shop Sales Reports' },
   { id: '1305', path: '/admin/shop/settings', component: BannerManagement, title: 'Banner Settings' },
   // Sidebar entries whose module is not built yet (no page, no API)
-  { id: '320', path: '/billing/returns', component: () => <ComingSoon name="Sales Return" />, title: 'Sales Return' },
-  { id: '321', path: '/billing/returns/list', component: () => <ComingSoon name="Credit Notes" />, title: 'Credit Notes' },
+  { id: '320', path: '/billing/returns', component: SalesReturn, title: 'Sales Return' },
+  { id: '321', path: '/billing/returns/list', component: CreditNotes, title: 'Credit Notes' },
   { id: '407', path: '/purchase-returns/create', component: () => <ComingSoon name="Purchase Return" />, title: 'Purchase Return' },
   { id: '506', path: '/inventory/audit', component: () => <ComingSoon name="Physical Audit" />, title: 'Physical Audit' },
   { id: '507', path: '/inventory/barcode', component: () => <ComingSoon name="Barcode Printing" />, title: 'Barcode Printing' },

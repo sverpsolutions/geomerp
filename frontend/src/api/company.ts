@@ -9,6 +9,8 @@ export interface CompanySettings {
     logo_path: string;
     company_cin: string;
     company_tan: string;
+    gstin: string;
+    company_state: string;
     item_code_format: string;
     enable_markdown_calc: boolean;
     enable_channel_pricing: boolean;
