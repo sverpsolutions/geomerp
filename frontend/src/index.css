@@ -64,6 +64,67 @@
   --sidebar-collapsed-w: 64px;
 }
 
+/* 🌙 DARK MODE — html.dark-mode (Settings → Theme, or the moon in the header) */
+:root.dark-mode {
+  color-scheme: dark;
+  --color-primary:         #1E8489;  /* white text stays ≥ 4.5:1 */
+  --color-primary-hover:   #23999E;
+  --color-primary-light:   #12343A;
+  --color-accent:          #2BB3B8;
+  --color-accent-hover:    #45C4C8;
+  --color-bg-app:          #0B141A;
+  --color-bg-card:         #111D24;
+  --color-bg-table-header: #0F1A20;
+  --color-bg-row-alt:      #121F27;
+  --color-bg-row-hover:    #16303B;
+  --color-bg-input:        #0F1A20;
+  --color-bg-input-disabled: #16222A;
+  --color-text-primary:    #E6EDF1;
+  --color-text-secondary:  #A9B6BF;
+  --color-text-muted:      #8396A3;
+  --color-text-link:       #5FD0D4;
+  --color-text-label:      #C3CDD3;
+  --color-border:          #22323C;
+  --color-border-strong:   #2E424E;
+  --color-border-table:    #1A2932;
+  --color-status-active-bg:    #0F2E1F;
+  --color-status-active-text:  #6FD49A;
+  --color-status-inactive-bg:  #3A1614;
+  --color-status-inactive-text: #F2A19A;
+}
+
+/* Older pages hard-code light utilities; map the common ones onto the dark tokens.
+   Pages that already carry dark: variants win (they are more specific to the element). */
+.dark-mode .bg-white, .dark-mode .bg-gray-50, .dark-mode .bg-slate-50 { background-color: var(--color-bg-card); }
+.dark-mode .bg-gray-100, .dark-mode .bg-slate-100, .dark-mode .bg-gray-200, .dark-mode .bg-slate-200 { background-color: var(--color-bg-row-alt); }
+.dark-mode .bg-blue-50, .dark-mode .bg-indigo-50, .dark-mode .bg-blue-100, .dark-mode .bg-indigo-100 { background-color: var(--color-primary-light); }
+.dark-mode .bg-amber-50, .dark-mode .bg-yellow-50 { background-color: #33270F; }
+.dark-mode .bg-green-50, .dark-mode .bg-emerald-50 { background-color: #0F2E1F; }
+.dark-mode .bg-red-50, .dark-mode .bg-rose-50 { background-color: #3A1614; }
+.dark-mode .text-gray-900, .dark-mode .text-slate-900, .dark-mode .text-gray-800, .dark-mode .text-slate-800,
+.dark-mode .text-black { color: var(--color-text-primary); }
+.dark-mode .text-gray-700, .dark-mode .text-slate-700, .dark-mode .text-gray-600, .dark-mode .text-slate-600 { color: var(--color-text-secondary); }
+.dark-mode .text-gray-500, .dark-mode .text-slate-500, .dark-mode .text-gray-400, .dark-mode .text-slate-400 { color: var(--color-text-muted); }
+.dark-mode .border-gray-100, .dark-mode .border-slate-100, .dark-mode .border-gray-200, .dark-mode .border-slate-200,
+.dark-mode .border-gray-300, .dark-mode .border-slate-300 { border-color: var(--color-border); }
+.dark-mode .divide-slate-100 > * + *, .dark-mode .divide-gray-100 > * + *, .dark-mode .divide-slate-200 > * + * { border-color: var(--color-border-table); }
+.dark-mode .hover\:bg-slate-50:hover, .dark-mode .hover\:bg-gray-50:hover, .dark-mode .hover\:bg-slate-100:hover,
+.dark-mode .hover\:bg-gray-100:hover { background-color: var(--color-bg-row-hover); }
+.dark-mode input:not([type=checkbox]):not([type=radio]), .dark-mode select, .dark-mode textarea {
+  background-color: var(--color-bg-input); color: var(--color-text-primary); border-color: var(--color-border-strong);
+}
+.dark-mode ::placeholder { color: var(--color-text-muted); }
+/* status colours used by the redesigned screens, lifted for dark backgrounds */
+.dark-mode .text-\[\#A3261E\] { color: #F2A19A; }
+.dark-mode .text-\[\#116B3A\] { color: #6FD49A; }
+.dark-mode .text-\[\#8A4B00\] { color: #F2C46D; }
+.dark-mode .text-\[\#2B4C9B\] { color: #9DB5F0; }
+.dark-mode .bg-\[\#FBE8E6\] { background-color: #3A1614; }
+.dark-mode .bg-\[\#E6F4EC\] { background-color: #0F2E1F; }
+.dark-mode .bg-\[\#FDF1DE\] { background-color: #33270F; }
+.dark-mode .bg-\[\#E8EEFB\] { background-color: #18233F; }
+.dark-mode .bg-\[\#F9FAFB\] { background-color: var(--color-bg-app); }
+
 
 /* Tactile Animations */
 .tactile-btn {
@@ -192,11 +253,11 @@
   .btn-accent:hover { background: var(--color-accent-hover); }
 
   .btn-secondary {
-    background: #FFFFFF;
+    background: var(--color-bg-card);
     color: var(--color-text-label);
     border-color: var(--color-border-strong);
   }
-  .btn-secondary:hover { background: #F9FAFB; border-color: var(--color-border-strong); }
+  .btn-secondary:hover { background: var(--color-bg-app); border-color: var(--color-border-strong); }
 
   /* ── FORM CONTROLS ────────────────────────────────── */
   .form-label {
@@ -245,7 +306,7 @@
   .ent-table {
     width: 100%;
     border-collapse: collapse;
-    background: #FFFFFF;
+    background: var(--color-bg-card);
   }
 
   .ent-table thead th {

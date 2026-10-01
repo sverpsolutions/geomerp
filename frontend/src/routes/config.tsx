@@ -2,6 +2,7 @@ import React from 'react';
 
 // Import all components needed for tabs
 import Dashboard from '../pages/dashboard/Dashboard';
+import StoreHealth from '../pages/dashboard/StoreHealth';
 import ItemMaster from '../pages/products/ItemMaster';
 import ProductAdd from '../pages/products/ProductAdd';
 import ImportProducts from '../pages/products/ImportProducts';
@@ -18,9 +19,6 @@ import Purchases from '../pages/purchases/Purchases';
 import POList from '../pages/purchases/POList';
 import POCreate from '../pages/purchases/POCreate';
 import PODetail from '../pages/purchases/PODetail';
-import Inventory from '../pages/inventory/Inventory';
-import AccountsDashboard from '../pages/accounts/AccountsDashboard';
-import Payments from '../pages/accounts/Payments';
 import ReportCenter from '../pages/reports/ReportCenter';
 import SalesReport from '../pages/reports/SalesReport';
 import PurchaseReport from '../pages/reports/PurchaseReport';
@@ -37,9 +35,6 @@ import HsnMismatchReport from '../pages/reports/HsnMismatchReport';
 import HsnMappingReport from '../pages/reports/HsnMappingReport';
 import HsnExceptionReport from '../pages/reports/HsnExceptionReport';
 import TaxBreakupReport from '../pages/reports/TaxBreakupReport';
-import EmployeeDirectory from '../pages/hr/EmployeeDirectory';
-import Attendance from '../pages/hr/Attendance';
-import Customers from '../pages/masters/Customers';
 import Groups from '../pages/masters/Groups';
 import SubGroups from '../pages/masters/SubGroups';
 import Categories from '../pages/masters/Categories';
@@ -81,20 +76,10 @@ import ProfitabilityReport from '../pages/reports/ProfitabilityAnalysis';
 import SalesVsPurchaseReport from '../pages/reports/SalesVsPurchaseReport';
 import ItemVelocityReport from '../pages/reports/ItemVelocityReport';
 import CustomerAnalyticsReport from '../pages/reports/CustomerAnalyticsReport';
-import BillEntry from '../pages/accounts/BillEntry';
 import SalesReturn from '../pages/billing/SalesReturn';
 import CreditNotes from '../pages/billing/CreditNotes';
 import PurchaseReturn from '../pages/purchases/PurchaseReturn';
 import DebitNotes from '../pages/purchases/DebitNotes';
-import Schemes from '../pages/promotions/Schemes';
-import BulkDiscount from '../pages/promotions/BulkDiscount';
-import ProcessingDashboard from '../pages/processing/ProcessingDashboard';
-import ReceiveLot from '../pages/processing/ReceiveLot';
-import BOMRecipes from '../pages/processing/BOMRecipes';
-import ProductionBatches from '../pages/processing/ProductionBatches';
-import HRDashboard from '../pages/hr/HRDashboard';
-import LeaveRequests from '../pages/hr/LeaveRequests';
-import SalarySlips from '../pages/hr/SalarySlips';
 import ShopDashboard from '../pages/shop/ShopDashboard';
 import ShopOrders from '../pages/shop/ShopOrders';
 import ShopCustomers from '../pages/shop/ShopCustomers';
@@ -110,6 +95,7 @@ export interface RouteConfig {
 
 export const APP_ROUTES: RouteConfig[] = [
   { id: '100', path: '/dashboard', component: Dashboard, title: 'Dashboard' },
+  { id: '109', path: '/stores/health', component: StoreHealth, title: 'Store Health' },
   { id: '101', path: '/products/item-master', component: ItemMaster, title: 'Item Master' },
   { id: '102', path: '/products/list', component: ItemMaster, title: 'All Items' },
   { id: '103', path: '/products/add', component: ProductAdd, title: 'Add New Item' },
@@ -117,7 +103,7 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '105', path: '/products/import', component: ImportProducts, title: 'Import Products' },
   { id: '201', path: '/masters/suppliers', component: Suppliers, title: 'Suppliers' },
   { id: '202', path: '/masters/suppliers/approvals', component: VendorApprovals, title: 'Vendor Approvals' },
-  { id: '203', path: '/masters/customers', component: Customers, title: 'Customers' },
+  { id: '203', path: '/masters/customers', component: () => <ComingSoon name="Customers" />, title: 'Customers' },
   { id: '210', path: '/masters/groups', component: Groups, title: 'Item Groups' },
   { id: '211', path: '/masters/subgroups', component: SubGroups, title: 'Sub Groups' },
   { id: '212', path: '/masters/categories', component: Categories, title: 'Categories' },
@@ -146,11 +132,12 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '403', path: '/purchases/po/create', component: POCreate, title: 'Create PO' },
   { id: '404', path: '/purchases/po/edit/:id', component: POCreate, title: 'Edit PO' },
   { id: '405', path: '/purchases/po/:id', component: PODetail, title: 'PO Detail' },
-  { id: '501', path: '/inventory/status', component: Inventory, title: 'Inventory Status' },
+  // was a mock-up page; the real stock view is the Stock Report
+  { id: '501', path: '/inventory/status', component: StockReport, title: 'Stock Status' },
   { id: '502', path: '/inventory/sync', component: GlobalSync, title: 'Global Sync' },
   { id: '510', path: '/inventory/monitor', component: SyncMonitor, title: 'Sync Monitor' },
-  { id: '601', path: '/accounts/dashboard', component: AccountsDashboard, title: 'Accounts' },
-  { id: '602', path: '/accounts/payments', component: Payments, title: 'Payments' },
+  { id: '601', path: '/accounts/dashboard', component: () => <ComingSoon name="Accounts" />, title: 'Accounts' },
+  { id: '602', path: '/accounts/payments', component: () => <ComingSoon name="Payments" />, title: 'Payments' },
   { id: '700', path: '/reports/center', component: ReportCenter, title: 'Report Center' },
   { id: '701', path: '/reports/sales', component: SalesReport, title: 'Sales Report' },
   { id: '702', path: '/reports/purchases', component: PurchaseReport, title: 'Purchase Report' },
@@ -182,8 +169,8 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '999', path: '/help', component: SystemHelp, title: 'System Help' },
   { id: '990', path: '/portals', component: PortalHub, title: 'Portal Hub' },
   { id: '910', path: '/settings/theme', component: ThemeSettings, title: 'Theme Settings' },
-  { id: '801', path: '/hr/employees', component: EmployeeDirectory, title: 'Employees' },
-  { id: '802', path: '/hr/attendance', component: Attendance, title: 'Attendance' },
+  { id: '801', path: '/hr/employees', component: () => <ComingSoon name="Employees" />, title: 'Employees' },
+  { id: '802', path: '/hr/attendance', component: () => <ComingSoon name="Attendance" />, title: 'Attendance' },
   { id: '503', path: '/inventory/transfer/out', component: () => <TransferRegister direction="out" />, title: 'Stock Transfer OUT' },
   { id: '505', path: '/inventory/transfer/multi', component: MultiBranchTransfer, title: 'New Transfer Out' },
   { id: '504', path: '/inventory/transfer/in', component: () => <TransferRegister direction="in" />, title: 'Stock Transfer IN' },
@@ -194,16 +181,16 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '1002', path: '/logistics/new', component: LogisticTransferWizard, title: 'New Transfer' },
   { id: '1003', path: '/logistics/transfer/:id', component: LogisticTransferWizard, title: 'Logistics' },
   { id: '406', path: '/purchases/grn', component: Purchases, title: 'GRN — Inward' },
-  { id: '603', path: '/accounts/bills', component: BillEntry, title: 'Bill Entry (SPS)' },
-  { id: '1101', path: '/schemes', component: Schemes, title: 'Schemes' },
-  { id: '1102', path: '/bulk-pricing', component: BulkDiscount, title: 'Bulk Discount' },
-  { id: '1201', path: '/processing', component: ProcessingDashboard, title: 'Processing' },
-  { id: '1202', path: '/processing/receive', component: ReceiveLot, title: 'Receive New Lot' },
-  { id: '1203', path: '/production/recipes', component: BOMRecipes, title: 'BOM Recipes' },
-  { id: '1204', path: '/production/batches', component: ProductionBatches, title: 'Production Batches' },
-  { id: '803', path: '/hr/dashboard', component: HRDashboard, title: 'HR Dashboard' },
-  { id: '804', path: '/hr/leaves', component: LeaveRequests, title: 'Leave Requests' },
-  { id: '805', path: '/hr/salary', component: SalarySlips, title: 'Salary Slips' },
+  { id: '603', path: '/accounts/bills', component: () => <ComingSoon name="Bill Entry (SPS)" />, title: 'Bill Entry (SPS)' },
+  { id: '1101', path: '/schemes', component: () => <ComingSoon name="Schemes" />, title: 'Schemes' },
+  { id: '1102', path: '/bulk-pricing', component: () => <ComingSoon name="Bulk Discount" />, title: 'Bulk Discount' },
+  { id: '1201', path: '/processing', component: () => <ComingSoon name="Processing" />, title: 'Processing' },
+  { id: '1202', path: '/processing/receive', component: () => <ComingSoon name="Receive New Lot" />, title: 'Receive New Lot' },
+  { id: '1203', path: '/production/recipes', component: () => <ComingSoon name="BOM Recipes" />, title: 'BOM Recipes' },
+  { id: '1204', path: '/production/batches', component: () => <ComingSoon name="Production Batches" />, title: 'Production Batches' },
+  { id: '803', path: '/hr/dashboard', component: () => <ComingSoon name="HR Dashboard" />, title: 'HR Dashboard' },
+  { id: '804', path: '/hr/leaves', component: () => <ComingSoon name="Leave Requests" />, title: 'Leave Requests' },
+  { id: '805', path: '/hr/salary', component: () => <ComingSoon name="Salary Slips" />, title: 'Salary Slips' },
   { id: '1301', path: '/admin/shop/dashboard', component: ShopDashboard, title: 'Shop Dashboard' },
   { id: '1302', path: '/admin/shop/orders', component: ShopOrders, title: 'Shop Orders' },
   { id: '1303', path: '/admin/shop/customers', component: ShopCustomers, title: 'Shop Customers' },
@@ -220,10 +207,12 @@ export const APP_ROUTES: RouteConfig[] = [
 
 function ComingSoon({ name }: { name: string }) {
   return (
-    <div className="p-8 flex flex-col items-center justify-center text-center text-slate-500 gap-2 h-full">
-      <i className="fas fa-tools text-3xl text-slate-300"></i>
-      <h3 className="text-slate-700">{name}</h3>
-      <p className="text-sm">This module is not built yet.</p>
+    <div className="p-8 h-full min-h-[60vh] flex flex-col items-center justify-center text-center gap-3">
+      <div className="w-16 h-16 rounded-2xl bg-primary-light text-primary flex items-center justify-center">
+        <i className="fas fa-hammer text-2xl"></i>
+      </div>
+      <h3 className="text-[18px] font-semibold text-text-primary m-0">{name}</h3>
+      <p className="text-[14px] text-text-secondary m-0 max-w-sm">This module is being built and will appear here in a coming release.</p>
     </div>
   );
 }

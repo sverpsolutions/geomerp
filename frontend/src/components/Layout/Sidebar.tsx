@@ -13,6 +13,12 @@ const NAV_SECTIONS = [
     color: '#3b82f6', // Blue
   },
   {
+    label: 'Store Health',
+    to: '/stores/health',
+    icon: 'fas fa-heartbeat',
+    color: '#14A3A8',
+  },
+  {
     label: 'Products',
     icon: 'fas fa-box-open',
     color: '#f59e0b', // Amber

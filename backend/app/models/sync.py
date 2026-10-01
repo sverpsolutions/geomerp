@@ -105,6 +105,8 @@ class unit_wise_stock_transfer(base):
     remarks: Mapped[str | None] = mapped_column(Text)
     created_by: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    received_at: Mapped[datetime | None] = mapped_column(DateTime)
+    received_by: Mapped[int | None] = mapped_column(Integer)
 
 
 class unit_wise_stock_transfer_item(base):
@@ -118,6 +120,7 @@ class unit_wise_stock_transfer_item(base):
     cost_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
     mrp: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
     total_val: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
+    received_qty: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
 
 
 class outlet_stock(base):

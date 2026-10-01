@@ -12,6 +12,17 @@ from app.models.sync import unit_wise_stock_transfer, unit_wise_stock_transfer_i
 from app.models.outlet import outlet
 from app.models.product import product
 from app.schemas.inventory import MultiTransferSessionCreate, MultiTransferSessionOut, BranchChipInfo
+from app.services.billing_service import _write_stock_ledger, _update_product_stock
+from decimal import Decimal
+from pydantic import BaseModel
+
+
+async def _ho_managed(db: AsyncSession, outlet_id: int) -> bool:
+    # ponytail: "no POS server" = stock kept in products.stock_qty (only HO today);
+    # outlets with a POS own their stock and outlet_stock is overwritten by sync.
+    # Needs a per-location stock table if a second non-POS warehouse is added.
+    o = await db.get(outlet, outlet_id)
+    return bool(o) and not (o.server_name or "").strip()
 
 router = APIRouter(prefix="/inventory/multi-transfer", tags=["inventory"])
 
@@ -116,6 +127,7 @@ async def confirm_multi_transfer(
     now = datetime.now()
     generated_trfs = []
     generated_ids = []
+    source_managed = await _ho_managed(db, session.from_location_id)
     prices = {r.id: r for r in (await db.execute(
         select(product.id, product.cost_price, product.mrp).where(product.id.in_({i.product_id for i in items}))
     )).all()}
@@ -153,6 +165,11 @@ async def confirm_multi_transfer(
                 mrp=(p.mrp if p else 0) or 0,
                 total_val=cost * s_item.qty_per_branch,
             ))
+            # dispatch: goods leave the source now
+            await _write_stock_ledger(db, s_item.product_id, "transfer_out", -s_item.qty_per_branch, trf.id,
+                                      "stock_transfer", session.from_location_id, trf_no, current_user.user_id)
+            if source_managed:
+                await _update_product_stock(db, s_item.product_id, -s_item.qty_per_branch)
             
         generated_trfs.append(trf_no)
         generated_ids.append(trf.id)
@@ -191,12 +208,65 @@ async def get_transfer_for_print(
                            "city": o.city, "state": o.state, "gst_number": o.gst_number}
     return {
         "id": trf.id, "transfer_no": trf.transfer_no, "transfer_date": trf.transfer_date,
-        "status": trf.status, "remarks": trf.remarks,
+        "status": trf.status, "remarks": trf.remarks, "received_at": trf.received_at,
         "from": loc(locs.get(trf.from_outlet_id)), "to": loc(locs.get(trf.to_outlet_id)),
-        "items": [{"name": n, "item_code": c, "barcode": b, "hsn_code": h, "qty": i.qty, "unit": i.unit,
+        "items": [{"id": i.id, "product_id": i.product_id, "name": n, "item_code": c, "barcode": b, "hsn_code": h,
+                   "qty": i.qty, "received_qty": i.received_qty, "unit": i.unit,
                    "cost_price": i.cost_price, "mrp": i.mrp, "total_val": i.total_val}
                   for i, n, c, b, h in rows],
     }
+
+
+class receive_line(BaseModel):
+    item_id: int
+    received_qty: Decimal
+
+
+class receive_in(BaseModel):
+    lines: List[receive_line]
+    remarks: str | None = None
+
+
+@router.post("/transfer/{trf_id}/receive")
+async def receive_transfer(
+    trf_id: int,
+    body: receive_in,
+    current_user: current_user_dep = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Branch confirms what arrived. Stores received qty per line; any line off = 'received_short'."""
+    trf = await db.get(unit_wise_stock_transfer, trf_id)
+    if not trf:
+        raise HTTPException(status_code=404, detail="Transfer not found")
+    if trf.status != "pending":
+        raise HTTPException(status_code=400, detail=f"Transfer is already {trf.status}")
+    items = {i.id: i for i in (await db.execute(
+        select(unit_wise_stock_transfer_item).where(unit_wise_stock_transfer_item.transfer_id == trf_id)
+    )).scalars().all()}
+    got = {l.item_id: l.received_qty for l in body.lines}
+    if set(got) != set(items):
+        raise HTTPException(status_code=400, detail="Send a received qty for every line")
+    if any(q < 0 for q in got.values()):
+        raise HTTPException(status_code=400, detail="Received qty cannot be negative")
+
+    dest_managed = await _ho_managed(db, trf.to_outlet_id)
+    for item_id, it in items.items():
+        q = got[item_id]
+        it.received_qty = q
+        if q:
+            await _write_stock_ledger(db, it.product_id, "transfer_in", q, trf.id, "stock_transfer",
+                                      trf.to_outlet_id, trf.transfer_no, current_user.user_id)
+            if dest_managed:
+                await _update_product_stock(db, it.product_id, q)
+
+    short = any(got[i] != it.qty for i, it in items.items())
+    trf.status = "received_short" if short else "received"
+    trf.received_at = datetime.now()
+    trf.received_by = current_user.user_id
+    if body.remarks and body.remarks.strip():
+        trf.remarks = f"{(trf.remarks or '').strip()} | Received: {body.remarks.strip()}".strip(" |")
+    await db.commit()
+    return {"message": f"{trf.transfer_no} received", "status": trf.status}
 
 
 @router.get("/transfers")
@@ -220,7 +290,8 @@ async def list_stock_transfers(
                func.count(i.id).label("item_count"),
                func.coalesce(func.sum(i.qty), 0).label("total_qty"),
                func.coalesce(func.sum(i.total_val), 0).label("cost_value"),
-               func.coalesce(func.sum(i.qty * i.mrp), 0).label("mrp_value"))
+               func.coalesce(func.sum(i.qty * i.mrp), 0).label("mrp_value"),
+               func.sum(i.received_qty).label("received_qty"))
         .group_by(i.transfer_id).subquery()
     )
     conds = []
@@ -236,13 +307,14 @@ async def list_stock_transfers(
         conds.append(t.transfer_no.ilike(f"%{q.strip()}%"))
 
     base = (
-        select(t.id, t.transfer_no, t.transfer_date, t.type, t.status, t.remarks,
+        select(t.id, t.transfer_no, t.transfer_date, t.type, t.status, t.remarks, t.received_at,
                t.from_outlet_id, frm.outlet_name.label("from_name"),
                t.to_outlet_id, to.outlet_name.label("to_name"),
                func.coalesce(agg.c.item_count, 0).label("item_count"),
                func.coalesce(agg.c.total_qty, 0).label("total_qty"),
                func.coalesce(agg.c.cost_value, 0).label("cost_value"),
-               func.coalesce(agg.c.mrp_value, 0).label("mrp_value"))
+               func.coalesce(agg.c.mrp_value, 0).label("mrp_value"),
+               agg.c.received_qty)
         .outerjoin(agg, agg.c.transfer_id == t.id)
         .outerjoin(frm, frm.id == t.from_outlet_id)
         .outerjoin(to, to.id == t.to_outlet_id)

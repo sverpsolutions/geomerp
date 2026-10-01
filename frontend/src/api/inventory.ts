@@ -9,6 +9,9 @@ export const inventory_api = {
 
     getTransferPrint: (trfId: number) => axios.get(`/inventory/multi-transfer/transfer/${trfId}/print`).then(r => r.data),
 
+    receiveTransfer: (trfId: number, body: { lines: { item_id: number; received_qty: number }[]; remarks?: string }) =>
+        axios.post(`/inventory/multi-transfer/transfer/${trfId}/receive`, body).then(r => r.data),
+
     listTransfers: (params: Record<string, string | number | undefined>) =>
         axios.get('/inventory/multi-transfer/transfers', { params }).then(r => r.data),
     

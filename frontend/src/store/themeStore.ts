@@ -13,11 +13,8 @@ export const useThemeStore = create<ThemeState>((set) => ({
   toggleDarkMode: () => set((state) => {
     const newVal = !state.isDarkMode;
     localStorage.setItem('sv_dark_mode', newVal ? '1' : '0');
-    if (newVal) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
+    // on <html> so CSS variables and getComputedStyle(documentElement) both see it
+    document.documentElement.classList.toggle('dark-mode', newVal);
     return { isDarkMode: newVal };
   }),
   toggleMonochrome: () => set((state) => {
@@ -35,7 +32,7 @@ export const useThemeStore = create<ThemeState>((set) => ({
 // Initialize classes on load
 if (typeof document !== 'undefined') {
   if (localStorage.getItem('sv_dark_mode') === '1') {
-    document.body.classList.add('dark-mode');
+    document.documentElement.classList.add('dark-mode');
   }
   if (localStorage.getItem('sv_monochrome') === '1') {
     document.body.classList.add('monochrome-mode');

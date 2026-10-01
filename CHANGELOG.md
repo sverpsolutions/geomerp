@@ -2,6 +2,28 @@
 
 Versions follow `MAJOR.MINOR.PATCH`. New work lands on the `testing` branch as `-beta.N` tags; once verified it is merged to `main` and tagged without the suffix.
 
+## v1.4.0 — 2026-10-01 (main)
+
+Stable release of v1.4.0-beta.1.
+
+## v1.4.0-beta.1 — 2026-10-01 (testing) — live dashboard, store health, receive, dark mode, owner app
+
+### Added
+- **Live Dashboard** (`/dashboard/summary`): today/yesterday/month sales, bills, avg bill, returns, receivables; 7/30-day chart; top items; store performance; recent bills; pending transfers; **best sellers out of stock** (sold in 30 days, stock ≤ 0 at that outlet). Refreshes every minute. Synced outlet lines carry the outlet item code in `product_id`, so items are matched on `item_code`.
+- **Store Health** (`/stores/health`): per outlet online / sync late / unreachable / no POS link, last sync, last bill, today's sales; live parallel ping of every outlet's VPN host (~2 s), rechecks every 2 min.
+- **Receive transfer** on Stock Transfer IN: scan to jump to a line, received qty per line, difference highlighted, remark required on a difference; status `received` / `received_short`. Migration `f2a5b8c1d3e4` adds `received_qty`, `received_at`, `received_by`.
+- Stock moves with transfers: dispatch from a location without a POS (HO) lowers `products.stock_qty`; receiving into it raises it; `transfer_out` / `transfer_in` rows in `stock_ledger` for every location.
+- **Dark mode**: header toggle (and Settings → Theme) on `html.dark-mode`; dark token set; Tailwind `dark:` variants follow the toggle instead of the OS; common light utilities on older pages mapped to dark tokens.
+- **Owner phone view** (`/owner`), installable (web manifest + icons): today's sales, month, receivables, stores online, per-store bars, stock-outs, pending transfers.
+
+### Changed
+- 15 mock-up screens (Customers, Schemes, Bulk Discount, Accounts ×3, HR ×5, Processing ×4) show a "coming soon" page; Stock Status opens the Stock Report.
+- Item photos are resized in the browser to fit 800 × 800 and saved as WebP.
+- Shared Modal uses theme tokens.
+
+### Fixed
+- Stock sync scheduler: first run 5 min after start (was immediately on every reload) and skips outlets that do not answer ping, so an unreachable outlet can no longer hang the backend.
+
 ## v1.3.0 — 2026-10-01 (main)
 
 Stable release of everything from v1.1.0-beta.1 to v1.3.0-beta.2.

@@ -8,6 +8,7 @@ import { audit_api } from '../../api/audit';
 import api from '../../api/axios';
 import BackupModal from '../common/BackupModal';
 import CommandPalette from '../common/CommandPalette';
+import { useThemeStore } from '../../store/themeStore';
 
 interface HeaderProps {
   onSidebarToggle: () => void;
@@ -29,6 +30,7 @@ export default function Header({ onSidebarToggle }: HeaderProps) {
   const navigate = useNavigate();
   const addTab = useTabStore(s => s.addTab);
   const user = useAuthStore(s => s.user);
+  const { isDarkMode, toggleDarkMode } = useThemeStore();
 
   // States
   const [pendingVendors, setPendingVendors] = useState<number>(0);
@@ -195,6 +197,15 @@ export default function Header({ onSidebarToggle }: HeaderProps) {
       <div className="flex items-center gap-4 ml-auto">
         {/* Global Tools */}
         <div className="flex items-center gap-1 pr-4 border-r border-border">
+          <button
+            onClick={toggleDarkMode}
+            className="text-text-secondary hover:text-primary transition-colors w-10 h-10 rounded-lg hover:bg-app-bg flex items-center justify-center"
+            title={isDarkMode ? 'Light mode' : 'Dark mode'}
+            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-pressed={isDarkMode}
+          >
+            <i className={`fas ${isDarkMode ? 'fa-sun' : 'fa-moon'} text-lg`}></i>
+          </button>
           {/* Stunning Interactive Notification Bell */}
           <div className="relative" ref={notifRef}>
             <button

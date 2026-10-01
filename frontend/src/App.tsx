@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import AppLayout from './layouts/AppLayout';
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
+import OwnerMobile from './pages/dashboard/OwnerMobile';
 import ItemMaster from './pages/products/ItemMaster';
 import ProductAdd from './pages/products/ProductAdd';
 import ProductForm from './pages/products/ProductForm';
@@ -112,6 +113,9 @@ const App = () => {
           <Route path="/vendor-portal" element={<VendorPortal />} />
           <Route path="/po/guest/:id" element={<POGuestDetail />} />
           
+          {/* Owner phone view (installable) */}
+          <Route path="/owner" element={<OwnerMobile />} />
+
           {/* HHT / Mobile WMS Routes */}
           <Route path="/hht" element={<PutawayDashboard />} />
           <Route path="/hht/putaway/:grnId" element={<GRNPutaway />} />

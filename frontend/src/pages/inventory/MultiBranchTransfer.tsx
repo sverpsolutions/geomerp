@@ -397,7 +397,7 @@ const MultiBranchTransfer = () => {
                     : 'border-border bg-white hover:border-primary/50'
                 }`}
                 style={{ 
-                  backgroundColor: isSelected ? 'var(--color-primary)' : 'white' 
+                  backgroundColor: isSelected ? 'var(--color-primary)' : 'var(--color-bg-card)' 
                 }}
               >
                 <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-all shrink-0 ${

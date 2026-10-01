@@ -390,16 +390,25 @@ const ProductAdd = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, side: 'img_front' | 'img_back' | 'img_top' | 'img_side') => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
+      // shrink to fit 800×800 and store as WebP (server keeps uploads as-is; phone photos are 3–5 MB)
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, 800 / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        const base64 = canvas.toDataURL('image/webp', 0.85);
         if (side === 'img_front') setImgFront(base64);
         if (side === 'img_back') setImgBack(base64);
         if (side === 'img_top') setImgTop(base64);
         if (side === 'img_side') setImgSide(base64);
         setValue(side, base64);
       };
-      reader.readAsDataURL(file);
+      img.onerror = () => { URL.revokeObjectURL(url); toast.error('Could not read that image'); };
+      img.src = url;
     }
   };
 
@@ -1685,7 +1694,7 @@ const ProductAdd = () => {
                                   <i className="fas fa-camera text-2xl text-slate-300 group-hover:text-blue-400 mb-2"></i>
                                   <span className="text-[9px] font-black uppercase text-slate-400 group-hover:text-blue-500 tracking-tighter">{side.label}</span>
                                   <span className="mt-2 text-[13px] font-semibold text-slate-300 group-hover:text-blue-400 select-none">800 × 800 px</span>
-                                  <span className="text-[10px] text-slate-300 group-hover:text-blue-400 select-none text-center px-2 leading-tight">Square · max 200 KB</span>
+                                  <span className="text-[10px] text-slate-300 group-hover:text-blue-400 select-none text-center px-2 leading-tight">Square · auto-resized</span>
                                   <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, side.id as any)} />
                                 </label>
                               )}

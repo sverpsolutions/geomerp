@@ -5,12 +5,16 @@ from sqlalchemy import select
 from app.core.database import async_session_factory
 from app.models.outlet import outlet
 from app.routers.sync import sync_stock
+from app.routers.dashboard import ping_host, _host
 
 logger = logging.getLogger("scheduler")
+STARTUP_DELAY_S = 300
 
 async def stock_sync_task():
     """Background task to sync stock for all connected outlets."""
     logger.info("Stock sync scheduler started")
+    # first run waits: every uvicorn --reload restart used to start a full 19-outlet sync at once
+    await asyncio.sleep(STARTUP_DELAY_S)
     while True:
         try:
             now = datetime.now()
@@ -24,6 +28,11 @@ async def stock_sync_task():
                     outlets = result.scalars().all()
                     
                     for s in outlets:
+                        # an unreachable outlet can hang its SQL login past login_timeout; skip it
+                        host = _host(s.server_name)
+                        if not host or not await ping_host(host):
+                            logger.info(f"Skipping unreachable outlet {s.outlet_name} (ID: {s.id})")
+                            continue
                         try:
                             logger.info(f"Auto-syncing stock for outlet: {s.outlet_name} (ID: {s.id})")
                             # We call the sync_stock function directly

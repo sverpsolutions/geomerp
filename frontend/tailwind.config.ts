@@ -8,6 +8,8 @@ const brand = {
 
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  // dark: variants follow the app's toggle (html.dark-mode), not the OS setting
+  darkMode: ['selector', '.dark-mode'],
   theme: {
     extend: {
       fontFamily: {

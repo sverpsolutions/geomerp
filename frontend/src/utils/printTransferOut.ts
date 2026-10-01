@@ -9,8 +9,9 @@ export interface transfer_print {
   remarks?: string | null
   from: trf_location | null
   to: trf_location | null
-  items: { name: string; item_code?: string | null; barcode?: string | null; hsn_code?: string | null
-           qty: string; unit?: string | null; cost_price: string; mrp: string; total_val: string }[]
+  received_at?: string | null
+  items: { id?: number; name: string; item_code?: string | null; barcode?: string | null; hsn_code?: string | null
+           qty: string; received_qty?: string | null; unit?: string | null; cost_price: string; mrp: string; total_val: string }[]
 }
 
 const esc = (v: unknown) =>
