@@ -2,6 +2,11 @@
 
 Versions follow `MAJOR.MINOR.PATCH`. New work lands on the `testing` branch as `-beta.N` tags; once verified it is merged to `main` and tagged without the suffix.
 
+## v1.1.0-beta.4 — 2026-10-01 (testing)
+
+### Tooling
+- Added SuperCharge v4 project skill (`.claude/skills/supercharge/`); runs only on `supercharge ...` / `/supercharge ...`.
+
 ## v1.1.0-beta.3 — 2026-10-01 (testing)
 
 ### Fixed
