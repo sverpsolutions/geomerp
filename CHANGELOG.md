@@ -2,6 +2,11 @@
 
 Versions follow `MAJOR.MINOR.PATCH`. New work lands on the `testing` branch as `-beta.N` tags; once verified it is merged to `main` and tagged without the suffix.
 
+## v1.4.1 — 2026-10-01 (main)
+
+### Fixed
+- Hosting build failed: `npm run build` ran `tsc -b` first and stopped on 212 existing type errors. `build` is now `vite build`; the type check is `npm run typecheck`.
+
 ## v1.4.0 — 2026-10-01 (main)
 
 Stable release of v1.4.0-beta.1.
