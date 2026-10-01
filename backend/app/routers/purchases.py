@@ -24,6 +24,7 @@ from app.schemas.purchase import (
     multi_po_create, vendor_invoice_in,
 )
 from app.services.auth_service import write_audit
+from app.services.billing_service import _write_stock_ledger
 
 router = APIRouter(prefix="/purchases", tags=["purchases"])
 
@@ -879,12 +880,14 @@ async def create_purchase(
     for it in item_rows:
         db.add(purchase_item(purchase_id=h.id, **it))
 
-    # Update product stock
+    # Update product stock + ledger (purchase returns reverse these)
     for it in body.items:
         await db.execute(
             text("UPDATE products SET stock_qty = stock_qty + :q WHERE id = :pid"),
             {"q": float(it.qty), "pid": it.product_id}
         )
+        await _write_stock_ledger(db, it.product_id, "purchase", it.qty, h.id, "grn", body.outlet_id,
+                                  f"GRN {purchase_no}", user.user_id)
 
     await write_audit(db=db, module="purchases", action="create_grn",
                       record_id=h.id, record_no=h.purchase_no,

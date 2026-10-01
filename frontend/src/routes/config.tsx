@@ -83,6 +83,8 @@ import CustomerAnalyticsReport from '../pages/reports/CustomerAnalyticsReport';
 import BillEntry from '../pages/accounts/BillEntry';
 import SalesReturn from '../pages/billing/SalesReturn';
 import CreditNotes from '../pages/billing/CreditNotes';
+import PurchaseReturn from '../pages/purchases/PurchaseReturn';
+import DebitNotes from '../pages/purchases/DebitNotes';
 import Schemes from '../pages/promotions/Schemes';
 import BulkDiscount from '../pages/promotions/BulkDiscount';
 import ProcessingDashboard from '../pages/processing/ProcessingDashboard';
@@ -209,7 +211,8 @@ export const APP_ROUTES: RouteConfig[] = [
   // Sidebar entries whose module is not built yet (no page, no API)
   { id: '320', path: '/billing/returns', component: SalesReturn, title: 'Sales Return' },
   { id: '321', path: '/billing/returns/list', component: CreditNotes, title: 'Credit Notes' },
-  { id: '407', path: '/purchase-returns/create', component: () => <ComingSoon name="Purchase Return" />, title: 'Purchase Return' },
+  { id: '407', path: '/purchase-returns/create', component: PurchaseReturn, title: 'Purchase Return' },
+  { id: '408', path: '/purchase-returns', component: DebitNotes, title: 'Debit Notes' },
   { id: '506', path: '/inventory/audit', component: () => <ComingSoon name="Physical Audit" />, title: 'Physical Audit' },
   { id: '507', path: '/inventory/barcode', component: () => <ComingSoon name="Barcode Printing" />, title: 'Barcode Printing' },
 ];

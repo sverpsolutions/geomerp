@@ -246,6 +246,8 @@ const App = () => {
             <Route path="processing/receive" element={<ReceiveLot />} />
             <Route path="production/recipes" element={<BOMRecipes />} />
             <Route path="production/batches" element={<ProductionBatches />} />
+            {/* Any other path: keep the shell; TabbedOutlet renders it from routes/config.tsx */}
+            <Route path="*" element={null} />
           </Route>
         </Routes>
       </Router>

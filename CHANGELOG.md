@@ -2,6 +2,26 @@
 
 Versions follow `MAJOR.MINOR.PATCH`. New work lands on the `testing` branch as `-beta.N` tags; once verified it is merged to `main` and tagged without the suffix.
 
+## v1.2.0-beta.2 — 2026-10-01 (testing) — Purchase Return Phase 2
+
+### Added
+- **Purchase Return / Debit Note** (Purchases → Purchase Return), two modes:
+  - *Against GRN*: qty limited to received − already returned (row-locked, HTTP 409); rate = GRN taxable per unit incl. line + header discount; GRN payable reduced by the debit note.
+  - *Direct (no GRN)*, NCG's default flow: supplier + items (word search), rate defaults to item-master purchase/cost price.
+  - NCG rules: GST-exclusive rate, GST on top; CGST+SGST vs IGST from company state vs supplier state; stock leaves HO with `stock_ledger` `purchase_return`; number `DN-HO-YYYY-NNNN`; cancel reverses stock and GRN payable; admin/manager only.
+  - HO stock is not enforced (all products show 0 HO stock today) — the screen warns when a return takes it negative.
+- **Debit Notes** list (Purchases → Debit Notes): HO debit notes + outlet PRNs, filters, print, cancel.
+- **Debit note print**: port of NCG `purchase_returns/print.php` — landscape "PURCHASE RETURN NOTE", supplier/return boxes, MRP/SP columns, GST summary, ITC-reversal note (GSTR-3B 4(B)(2)), amount in words, supplier acknowledgement + signatory.
+- GRN now writes `stock_ledger` `purchase` rows.
+
+### Fixed
+- **GRN Inward could never save**: ORM wrote `total_qty` / item `basic_amount…` columns missing in the DB (0 GRNs ever recorded). Migration `d5e8f2a3c6b7` adds them.
+- `unit_wise_purchase_returns` tables had an old shape matching neither outlet PRN sync nor debit notes (empty) — rebuilt to one schema; HO numbers unique, outlet PRN numbers may repeat across outlets.
+- Pages under paths with no `App.tsx` route (Purchase Return, Physical Audit, Barcode Printing) rendered blank: added a catch-all inside the app shell so `routes/config.tsx` decides.
+
+### Known
+- GRN computes GST before the header discount, so GRN GST is slightly overstated when a header discount is used (debit notes use the discounted value).
+
 ## v1.2.0-beta.1 — 2026-10-01 (testing) — Sales Return Phase 1
 
 ### Added

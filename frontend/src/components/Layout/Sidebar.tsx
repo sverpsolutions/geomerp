@@ -79,6 +79,7 @@ const NAV_SECTIONS = [
       { label: 'Create New PO', to: '/purchases/po/create', icon: 'fas fa-plus-circle' },
       { label: 'GRN — Inward', to: '/purchases/grn', icon: 'fas fa-truck-loading' },
       { label: 'Purchase Return', to: '/purchase-returns/create', icon: 'fas fa-undo' },
+      { label: 'Debit Notes', to: '/purchase-returns', icon: 'fas fa-file-invoice' },
     ],
   },
   {
