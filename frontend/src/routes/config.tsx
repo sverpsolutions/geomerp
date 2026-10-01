@@ -80,6 +80,21 @@ import ProfitabilityReport from '../pages/reports/ProfitabilityAnalysis';
 import SalesVsPurchaseReport from '../pages/reports/SalesVsPurchaseReport';
 import ItemVelocityReport from '../pages/reports/ItemVelocityReport';
 import CustomerAnalyticsReport from '../pages/reports/CustomerAnalyticsReport';
+import BillEntry from '../pages/accounts/BillEntry';
+import Schemes from '../pages/promotions/Schemes';
+import BulkDiscount from '../pages/promotions/BulkDiscount';
+import ProcessingDashboard from '../pages/processing/ProcessingDashboard';
+import ReceiveLot from '../pages/processing/ReceiveLot';
+import BOMRecipes from '../pages/processing/BOMRecipes';
+import ProductionBatches from '../pages/processing/ProductionBatches';
+import HRDashboard from '../pages/hr/HRDashboard';
+import LeaveRequests from '../pages/hr/LeaveRequests';
+import SalarySlips from '../pages/hr/SalarySlips';
+import ShopDashboard from '../pages/shop/ShopDashboard';
+import ShopOrders from '../pages/shop/ShopOrders';
+import ShopCustomers from '../pages/shop/ShopCustomers';
+import ShopReports from '../pages/shop/ShopReports';
+import BannerManagement from '../pages/shop/BannerManagement';
 
 export interface RouteConfig {
   id: string;
@@ -173,4 +188,36 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '1001', path: '/logistics/list', component: LogisticList, title: 'Shipments' },
   { id: '1002', path: '/logistics/new', component: LogisticTransferWizard, title: 'New Transfer' },
   { id: '1003', path: '/logistics/transfer/:id', component: LogisticTransferWizard, title: 'Logistics' },
+  { id: '406', path: '/purchases/grn', component: Purchases, title: 'GRN — Inward' },
+  { id: '603', path: '/accounts/bills', component: BillEntry, title: 'Bill Entry (SPS)' },
+  { id: '1101', path: '/schemes', component: Schemes, title: 'Schemes' },
+  { id: '1102', path: '/bulk-pricing', component: BulkDiscount, title: 'Bulk Discount' },
+  { id: '1201', path: '/processing', component: ProcessingDashboard, title: 'Processing' },
+  { id: '1202', path: '/processing/receive', component: ReceiveLot, title: 'Receive New Lot' },
+  { id: '1203', path: '/production/recipes', component: BOMRecipes, title: 'BOM Recipes' },
+  { id: '1204', path: '/production/batches', component: ProductionBatches, title: 'Production Batches' },
+  { id: '803', path: '/hr/dashboard', component: HRDashboard, title: 'HR Dashboard' },
+  { id: '804', path: '/hr/leaves', component: LeaveRequests, title: 'Leave Requests' },
+  { id: '805', path: '/hr/salary', component: SalarySlips, title: 'Salary Slips' },
+  { id: '1301', path: '/admin/shop/dashboard', component: ShopDashboard, title: 'Shop Dashboard' },
+  { id: '1302', path: '/admin/shop/orders', component: ShopOrders, title: 'Shop Orders' },
+  { id: '1303', path: '/admin/shop/customers', component: ShopCustomers, title: 'Shop Customers' },
+  { id: '1304', path: '/admin/shop/reports', component: ShopReports, title: 'Shop Sales Reports' },
+  { id: '1305', path: '/admin/shop/settings', component: BannerManagement, title: 'Banner Settings' },
+  // Sidebar entries whose module is not built yet (no page, no API)
+  { id: '320', path: '/billing/returns', component: () => <ComingSoon name="Sales Return" />, title: 'Sales Return' },
+  { id: '321', path: '/billing/returns/list', component: () => <ComingSoon name="Credit Notes" />, title: 'Credit Notes' },
+  { id: '407', path: '/purchase-returns/create', component: () => <ComingSoon name="Purchase Return" />, title: 'Purchase Return' },
+  { id: '506', path: '/inventory/audit', component: () => <ComingSoon name="Physical Audit" />, title: 'Physical Audit' },
+  { id: '507', path: '/inventory/barcode', component: () => <ComingSoon name="Barcode Printing" />, title: 'Barcode Printing' },
 ];
+
+function ComingSoon({ name }: { name: string }) {
+  return (
+    <div className="p-8 flex flex-col items-center justify-center text-center text-slate-500 gap-2 h-full">
+      <i className="fas fa-tools text-3xl text-slate-300"></i>
+      <h3 className="text-slate-700">{name}</h3>
+      <p className="text-sm">This module is not built yet.</p>
+    </div>
+  );
+}
