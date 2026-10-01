@@ -53,7 +53,7 @@ const UnitDashboard = () => {
   const kpi = data?.kpi || {};
   const kpiCards = [
     { label: "Today's Sales", value: fmt(kpi.today_sales), icon: 'fa-rupee-sign', color: '#16A34A', sub: `${kpi.today_bills || 0} bills` },
-    { label: 'Avg Bill Value', value: fmt(kpi.avg_bill), icon: 'fa-calculator', color: '#2563EB', sub: 'Per transaction' },
+    { label: 'Avg Bill Value', value: fmt(kpi.avg_bill), icon: 'fa-calculator', color: '#0E5C63', sub: 'Per transaction' },
     { label: 'MTD Sales', value: fmt(kpi.mtd_sales), icon: 'fa-calendar-alt', color: '#7C3AED', sub: `${kpi.mtd_bills || 0} bills` },
     { label: 'Active SKUs', value: kpi.total_skus || 0, icon: 'fa-box-open', color: '#0EA5E9', sub: `${Number(kpi.total_stock_qty || 0).toLocaleString()} units` },
   ];
@@ -63,7 +63,7 @@ const UnitDashboard = () => {
     labels: trendData.map((t: any) => t.date?.slice(5) || ''),
     datasets: [{
       label: 'Sales (₹)', data: trendData.map((t: any) => t.sales),
-      backgroundColor: 'rgba(37,99,235,0.6)', borderColor: '#2563EB',
+      backgroundColor: 'rgba(37,99,235,0.6)', borderColor: '#0E5C63',
       borderWidth: 1, borderRadius: 6,
     }],
   };

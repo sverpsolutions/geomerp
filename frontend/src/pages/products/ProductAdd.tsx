@@ -135,7 +135,7 @@ const ActivityCharts = ({ data }: { data: any[] }) => {
       {
         label: 'Out Qty',
         data: data.map(d => d.out_qty),
-        backgroundColor: '#3b82f6',
+        backgroundColor: '#1E8489',
         borderRadius: 6,
         barThickness: 12,
       }
@@ -1684,6 +1684,8 @@ const ProductAdd = () => {
                                 <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/10 transition-all">
                                   <i className="fas fa-camera text-2xl text-slate-300 group-hover:text-blue-400 mb-2"></i>
                                   <span className="text-[9px] font-black uppercase text-slate-400 group-hover:text-blue-500 tracking-tighter">{side.label}</span>
+                                  <span className="mt-2 text-[13px] font-semibold text-slate-300 group-hover:text-blue-400 select-none">800 × 800 px</span>
+                                  <span className="text-[10px] text-slate-300 group-hover:text-blue-400 select-none text-center px-2 leading-tight">Square · max 200 KB</span>
                                   <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, side.id as any)} />
                                 </label>
                               )}

@@ -7,7 +7,7 @@ import { saveAs } from 'file-saver';
 ChartJS.register(ArcElement);
 
 const fmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const COLORS = ['#2563EB','#16A34A','#D97706','#DC2626','#7C3AED','#0EA5E9','#F97316','#EC4899','#14B8A6','#6366F1','#84CC16','#F43F5E'];
+const COLORS = ['#0E5C63','#16A34A','#D97706','#DC2626','#7C3AED','#0EA5E9','#F97316','#EC4899','#14B8A6','#1E8489','#84CC16','#F43F5E'];
 
 const CategorySalesReport = () => {
   const today = new Date().toISOString().split('T')[0];

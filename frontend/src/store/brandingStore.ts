@@ -18,7 +18,7 @@ export const useBrandingStore = create<BrandingState>()(
         (set) => ({
             brand_name: 'MB_WMS',
             logo_path: '/logo.jpg',
-            primary_color: '#2563EB',
+            primary_color: '#0E5C63',
             settings: null,
             fetchSettings: async () => {
                 try {
@@ -27,7 +27,7 @@ export const useBrandingStore = create<BrandingState>()(
                         settings, 
                         brand_name: settings.brand_name || 'MB_WMS',
                         logo_path: settings.logo_path || '/logo.jpg',
-                        primary_color: settings.primary_color || '#2563EB'
+                        primary_color: settings.primary_color || '#0E5C63'
                     });
                     if (settings.primary_color) {
                         document.documentElement.style.setProperty('--clr-primary', settings.primary_color);
@@ -41,7 +41,7 @@ export const useBrandingStore = create<BrandingState>()(
                     settings: newSettings, 
                     brand_name: newSettings.brand_name || 'MB_WMS',
                     logo_path: newSettings.logo_path || '/logo.jpg',
-                    primary_color: newSettings.primary_color || '#2563EB'
+                    primary_color: newSettings.primary_color || '#0E5C63'
                 });
             },
             setBrandName: (brand_name) => set({ brand_name }),

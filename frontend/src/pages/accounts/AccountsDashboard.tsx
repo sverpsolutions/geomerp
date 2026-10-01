@@ -26,7 +26,7 @@ const AccountsDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard title="Total Payable" value="₹ 42.50 L" icon="fas fa-arrow-up" color="#e11d48" trend="+2.4% from last month" />
         <StatCard title="Total Receivable" value="₹ 18.20 L" icon="fas fa-arrow-down" color="#059669" trend="-1.5% from last month" />
-        <StatCard title="Bank Balance" value="₹ 1.05 Cr" icon="fas fa-wallet" color="#2563eb" trend="Stable" />
+        <StatCard title="Bank Balance" value="₹ 1.05 Cr" icon="fas fa-wallet" color="#0E5C63" trend="Stable" />
         <StatCard title="Cash in Hand" value="₹ 8.45 L" icon="fas fa-money-bill-wave" color="#d97706" trend="+5.1% increase" />
       </div>
 

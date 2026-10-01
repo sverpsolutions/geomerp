@@ -32,7 +32,7 @@ const TopItemsReport = () => {
   const chartData = {
     labels: top10.map((r: any) => r.item_name?.slice(0, 20) || ''),
     datasets: [{ label: 'Sales (₹)', data: top10.map((r: any) => r.total_sales),
-      backgroundColor: ['#2563EB','#16A34A','#D97706','#DC2626','#7C3AED','#0EA5E9','#F97316','#EC4899','#14B8A6','#6366F1'],
+      backgroundColor: ['#0E5C63','#16A34A','#D97706','#DC2626','#7C3AED','#0EA5E9','#F97316','#EC4899','#14B8A6','#1E8489'],
       borderRadius: 6 }],
   };
 

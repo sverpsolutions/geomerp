@@ -325,7 +325,7 @@ export default function POCreate() {
 
       {/* ── Page Header Banner ── */}
       <div className="rounded-2xl overflow-hidden shadow-md"
-        style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 60%, #2563eb 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #0E5C63 60%, #0E5C63 100%)' }}>
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
@@ -376,7 +376,7 @@ export default function POCreate() {
       {/* ── Order Details Card ── */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         {/* Card top accent */}
-        <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg,#1d4ed8,#7c3aed,#0ea5e9)' }}></div>
+        <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg,#0E5C63,#7c3aed,#0ea5e9)' }}></div>
         <div className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">

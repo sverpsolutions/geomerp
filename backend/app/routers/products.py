@@ -1,12 +1,13 @@
 import math
 from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select, update, case
+from sqlalchemy import func, select, update, case, null as sa_null
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role, current_user_dep
 from app.models.product import product as product_model, product_barcode, outlet_pricing
 from app.models.outlet import outlet as outlet_model
+from app.models.sync import outlet_stock
 from app.schemas.product import (
     product_create, product_update, product_out, product_list_out,
     barcode_out, barcode_generate_request,
@@ -30,9 +31,19 @@ router = APIRouter(prefix="/products", tags=["products"])
 async def search_products(
     q: str = Query("", min_length=1),
     limit: int = Query(20, ge=1, le=100),
+    outlet_id: int | None = Query(None, description="also return stock_qty at this outlet"),
     current_user: current_user_dep = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # outlet_stock only holds non-zero rows, so no row means 0 at that outlet
+    stock_col = (
+        func.coalesce(
+            select(outlet_stock.stock_qty)
+            .where(outlet_stock.outlet_id == outlet_id, outlet_stock.product_id == product_model.id)
+            .limit(1).scalar_subquery(), 0)
+        if outlet_id else sa_null()
+    ).label("stock_qty")
+
     # Search by barcode in product_barcodes table to get matching product IDs
     barcode_sub = (
         select(product_barcode.product_id)
@@ -52,6 +63,7 @@ async def search_products(
             product_model.mrp,
             product_model.gst_percent,
             product_model.hsn_code,
+            stock_col,
         )
         .where(product_model.is_active == True)
         .where(
@@ -74,6 +86,7 @@ async def search_products(
             "selling_price": str(r.selling_price),
             "mrp": str(r.mrp),
             "gst_percent": str(r.gst_percent),
+            "stock_qty": None if r.stock_qty is None else str(r.stock_qty),
         }
         for r in rows
     ]

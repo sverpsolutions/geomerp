@@ -10,6 +10,7 @@ import { billing_api, type invoice_out } from '../../api/billing'
 import { products_api, type product_search_item } from '../../api/products'
 import { customers_api, type customer_list_item } from '../../api/customers'
 import { getCompanySettings } from '../../api/company'
+import { masters_api } from '../../api/masters'
 import { useAuthStore } from '../../store/authStore'
 import { printReceipt } from '../../utils/printReceipt'
 
@@ -17,6 +18,7 @@ interface Line { key: number; product_id: number; name: string; item_code: strin
   hsn_code: string | null; unit: string; mrp: number; rate: number; qty: number; gst: number }
 interface Held { at: string; customer: Cust; lines: Line[] }
 interface Cust { id: number; name: string; phone?: string }
+type SplitMode = 'cash' | 'card' | 'upi'
 
 const WALK_IN: Cust = { id: 1, name: 'Walk-in Customer' }
 const NAVY = '#1D2D3D', NAVY_SOFT = '#2C455D', ACCENT = '#5980A6'
@@ -24,6 +26,7 @@ const r2 = (v: number) => Math.round(v * 100) / 100
 const inr = (v: number) => `₹ ${v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const errMsg = (e: any) => e?.response?.data?.detail || e?.message || 'Something went wrong'
 const HOLD_KEY = 'pos_held_bills'
+const OUTLET_KEY = 'pos_outlet_id'
 const loadHeld = (): Held[] => { try { return JSON.parse(localStorage.getItem(HOLD_KEY) || '[]') } catch { return [] } }
 const saveHeld = (h: Held[]) => { try { localStorage.setItem(HOLD_KEY, JSON.stringify(h)) } catch { /* storage blocked */ } }
 let keySeq = 1
@@ -37,7 +40,25 @@ export default function PosBilling() {
   const [customer, setCustomer] = useState<Cust>(WALK_IN)
   const [custQ, setCustQ] = useState('')
   const [custHits, setCustHits] = useState<customer_list_item[]>([])
+  const [custHi, setCustHi] = useState(-1)  // arrow-key highlight in customer dropdown, -1 = none
+  const [newCust, setNewCust] = useState<{ name: string; phone: string; city: string } | null>(null)
   const [invType, setInvType] = useState('retail')
+  // billing location: user's own outlet if assigned, else last one picked on this counter, else HO
+  const userOutlet = useAuthStore(s => s.user?.outlet_id) ?? null
+  const [outlets, setOutlets] = useState<{ id: number; unit_code: string; outlet_name: string }[]>([])
+  const [outletId, setOutletId] = useState<number | null>(() => {
+    if (userOutlet) return userOutlet
+    try { return Number(localStorage.getItem(OUTLET_KEY)) || null } catch { return null }
+  })
+  useEffect(() => {
+    masters_api.get_outlets().then(r => {
+      const list = r.data || []
+      setOutlets(list)
+      setOutletId(id => (id && list.some((o: { id: number }) => o.id === id)) ? id
+        : (list.find((o: { unit_code: string }) => o.unit_code === 'MB_WHS') ?? list[0])?.id ?? null)
+    }).catch(() => {})
+  }, [])
+  useEffect(() => { if (outletId && !userOutlet) try { localStorage.setItem(OUTLET_KEY, String(outletId)) } catch { /* storage blocked */ } }, [outletId, userOutlet])
   const [invDate, setInvDate] = useState(new Date().toISOString().slice(0, 10))
   const [lines, setLines] = useState<Line[]>([])
   const [active, setActive] = useState<number | null>(null)
@@ -47,7 +68,8 @@ export default function PosBilling() {
   const [status, setStatus] = useState('')
   const [clock, setClock] = useState(new Date())
   const [payOpen, setPayOpen] = useState(false)
-  const [mode, setMode] = useState<'cash' | 'card' | 'upi' | 'credit'>('cash')
+  const [mode, setMode] = useState<'cash' | 'card' | 'upi' | 'credit' | 'split'>('cash')
+  const [split, setSplit] = useState<{ mode: SplitMode; amt: string }[]>([{ mode: 'cash', amt: '' }, { mode: 'upi', amt: '' }])
   const [cdPct, setCdPct] = useState(0)
   const [roundOff, setRoundOff] = useState(true)
   const [tendered, setTendered] = useState('')
@@ -78,7 +100,9 @@ export default function PosBilling() {
              grand, mrpTotal: r2(mrpTotal), itemDisc: r2(mrpTotal - gross), save: r2(mrpTotal - grand), qty }
   }, [lines, cdPct, roundOff])
 
-  const paid = mode === 'credit' ? 0 : Math.min(Number(tendered || t.grand), t.grand)
+  // split: 2nd amount defaults to whatever the 1st leaves of the bill
+  const splitAmts = [Number(split[0].amt || 0), split[1].amt === '' ? Math.max(0, r2(t.grand - Number(split[0].amt || 0))) : Number(split[1].amt)]
+  const paid = mode === 'credit' ? 0 : mode === 'split' ? r2(splitAmts[0] + splitAmts[1]) : Math.min(Number(tendered || t.grand), t.grand)
   const change = mode === 'cash' && Number(tendered) > t.grand ? r2(Number(tendered) - t.grand) : 0
   const due = r2(t.grand - paid)
 
@@ -122,9 +146,43 @@ export default function PosBilling() {
   // ── customer search ──
   useEffect(() => {
     if (custQ.trim().length < 2) { setCustHits([]); return }
-    const h = setTimeout(() => customers_api.list({ search: custQ.trim(), per_page: 10 }).then(r => setCustHits(r.data.data || [])).catch(() => {}), 250)
-    return () => clearTimeout(h)
+    let live = true  // drop responses that land after the box changed (e.g. customer picked on Enter)
+    const h = setTimeout(() => customers_api.list({ search: custQ.trim(), per_page: 10 }).then(r => live && setCustHits(r.data.data || [])).catch(() => {}), 250)
+    return () => { live = false; clearTimeout(h) }
   }, [custQ])
+  useEffect(() => setCustHi(-1), [custHits])
+
+  function pickCustomer(c: Cust) {
+    setCustomer(c); setCustQ(''); setCustHits([]); searchRef.current?.focus()
+  }
+
+  // Enter on phone box: exact phone match -> select; one hit -> select; nothing -> quick-add dialog
+  async function onCustEnter() {
+    const term = custQ.trim()
+    if (!term) return
+    const sel = custHits[custHi]
+    if (sel) return pickCustomer({ id: sel.id, name: sel.name, phone: sel.phone })
+    const r = await customers_api.list({ search: term, per_page: 10 }).catch(() => null)
+    if (!r) return toast.error('Customer search failed — check the server/database connection')  // never offer "new" when we couldn't look
+    const list = r.data.data ?? []
+    const exact = list.find(c => c.phone === term) ?? (list.length === 1 ? list[0] : undefined)
+    if (exact) return pickCustomer({ id: exact.id, name: exact.name, phone: exact.phone })
+    if (list.length) { setCustHits(list); return }
+    const digits = /^\d+$/.test(term)
+    setNewCust({ name: digits ? '' : term, phone: digits ? term : '', city: '' })
+  }
+
+  async function saveNewCust() {
+    if (!newCust) return
+    const name = newCust.name.trim(), phone = newCust.phone.trim()
+    if (!name) return toast.error('Customer name is required')
+    if (!/^\d{10}$/.test(phone)) return toast.error('Enter a 10-digit mobile number')
+    try {
+      const res = await customers_api.create({ name, phone, city: newCust.city.trim() || null, type: invType })
+      toast.success('Customer saved')
+      setNewCust(null); pickCustomer({ id: res.data.id, name: res.data.name, phone: res.data.phone })
+    } catch (e) { toast.error(errMsg(e)) }
+  }
 
   // ── price check (F3): look up without adding ──
   useEffect(() => {
@@ -142,7 +200,7 @@ export default function PosBilling() {
   }
 
   function reset() {
-    setLines([]); setCustomer(WALK_IN); setCustQ(''); setCdPct(0); setTendered(''); setNotes(''); setMode('cash')
+    setLines([]); setCustomer(WALK_IN); setCustQ(''); setCdPct(0); setTendered(''); setNotes(''); setMode('cash'); setSplit([{ mode: 'cash', amt: '' }, { mode: 'upi', amt: '' }])
     setPayOpen(false); setActive(null); setStatus(''); setInvDate(new Date().toISOString().slice(0, 10)); searchRef.current?.focus()
   }
 
@@ -171,11 +229,14 @@ export default function PosBilling() {
   async function save() {
     if (saving) return
     if (mode === 'credit' && customer.id === WALK_IN.id) return toast.error('Credit bills need a customer (not Walk-in)')
+    if (!outletId) return toast.error('Select the billing location first')
+    if (mode === 'split' && paid > t.grand) return toast.error(`Split total ${inr(paid)} is more than the bill ${inr(t.grand)}`)
+    const payments = mode === 'split' ? split.map((p, i) => ({ payment_mode: p.mode, amount: r2(splitAmts[i]) })).filter(p => p.amount > 0) : undefined
     setSaving(true)
     try {
       const res = await billing_api.create_invoice({
-        customer_id: customer.id, invoice_type: invType, invoice_date: invDate, payment_mode: mode,
-        cd_percent: cdPct, round_off: roundOff, notes: notes.trim() || undefined, paid_amount: paid,
+        outlet_id: outletId ?? undefined, customer_id: customer.id, invoice_type: invType, invoice_date: invDate, payment_mode: mode,
+        cd_percent: cdPct, round_off: roundOff, notes: notes.trim() || undefined, paid_amount: paid, payments,
         items: lines.map(l => ({
           product_id: l.product_id, item_code: l.item_code ?? undefined, name: l.name, qty: l.qty, unit: l.unit,
           rate: Math.round(l.rate / (1 + l.gst / 100) * 10000) / 10000, disc_val: 0, disc_type: '₹',
@@ -208,7 +269,7 @@ export default function PosBilling() {
       F8: () => focusCell('rate'), F11: toggleFullscreen,
     }
     if (map[e.key]) { e.preventDefault(); map[e.key]() }
-    else if (e.key === 'Escape') { setPayOpen(false); setRecallOpen(false); setPriceOpen(false); setHits([]); setCustHits([]) }
+    else if (e.key === 'Escape') { setNewCust(null); setPayOpen(false); setRecallOpen(false); setPriceOpen(false); setHits([]); setCustHits([]) }
   }
   useEffect(() => {
     const h = (e: KeyboardEvent) => keyRef.current(e)
@@ -247,14 +308,19 @@ export default function PosBilling() {
         <div className="relative flex-[1.3_1_170px] min-w-[170px]">
           <div className="flex">
             <span className="px-2 flex items-center border border-r-0 border-sky-500 bg-slate-50 text-sky-600"><i className="fas fa-mobile-alt" /></span>
-            <input value={custQ} onChange={e => setCustQ(e.target.value)} placeholder="Phone or name search..."
+            <input value={custQ} onChange={e => setCustQ(e.target.value)} placeholder="Phone or name search... (Enter)"
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); onCustEnter() }
+                else if (e.key === 'ArrowDown') { e.preventDefault(); setCustHi(i => Math.min(i + 1, custHits.length - 1)) }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); setCustHi(i => Math.max(i - 1, 0)) }
+              }}
               className="flex-1 border border-sky-500 px-2 py-1 outline-none text-sm min-w-0" />
           </div>
           {custHits.length > 0 && (
             <div className="absolute z-30 bg-white border shadow-lg w-full max-h-52 overflow-y-auto">
-              {custHits.map(c => (
-                <button key={c.id} onClick={() => { setCustomer({ id: c.id, name: c.name, phone: c.phone }); setCustQ(''); setCustHits([]) }}
-                  className="block w-full text-left px-2 py-1.5 hover:bg-sky-50 border-b text-sm">
+              {custHits.map((c, i) => (
+                <button key={c.id} onMouseEnter={() => setCustHi(i)} onClick={() => pickCustomer({ id: c.id, name: c.name, phone: c.phone })}
+                  className={`block w-full text-left px-2 py-1.5 border-b text-sm ${i === custHi ? 'bg-sky-100' : 'hover:bg-sky-50'}`}>
                   {c.name} <span className="text-xs text-gray-400">{c.phone}</span>
                 </button>
               ))}
@@ -266,6 +332,10 @@ export default function PosBilling() {
           {customer.phone && <span className="text-xs text-gray-400">({customer.phone})</span>}
           {customer.id !== WALK_IN.id && <button onClick={() => setCustomer(WALK_IN)} className="ml-auto text-gray-400 hover:text-red-600" title="Back to Walk-in"><i className="fas fa-times" /></button>}
         </div>
+        <select value={outletId ?? ''} onChange={e => setOutletId(Number(e.target.value) || null)} disabled={!!userOutlet}
+          title="Billing location" className="w-[170px] border border-black/15 px-2 py-1 disabled:bg-slate-100">
+          {outlets.map(o => <option key={o.id} value={o.id}>{o.outlet_name}</option>)}
+        </select>
         <select value={invType} onChange={e => setInvType(e.target.value)} className="w-[115px] border border-black/15 px-2 py-1">
           <option value="retail">Retail</option><option value="wholesale">Wholesale</option>
         </select>
@@ -440,8 +510,8 @@ export default function PosBilling() {
                 <span><i className="fas fa-wallet mr-1" /> PAYMENT MODE</span>
                 <button onClick={() => setPayOpen(false)} className="border border-white/40 px-2 text-[11px] uppercase">Close · Esc</button>
               </div>
-              <div className="grid grid-cols-4 gap-1 border border-slate-300 p-1 bg-white">
-                {(['cash', 'card', 'upi', 'credit'] as const).map(m => (
+              <div className="grid grid-cols-5 gap-1 border border-slate-300 p-1 bg-white">
+                {(['cash', 'card', 'upi', 'credit', 'split'] as const).map(m => (
                   <button key={m} onClick={() => setMode(m)}
                     className={`py-1.5 font-bold text-sm ${mode === m ? 'text-white' : 'hover:bg-slate-200 text-slate-800'}`} style={mode === m ? { background: NAVY } : {}}>
                     [{m === 'upi' ? 'UPI' : m.charAt(0).toUpperCase() + m.slice(1)}]
@@ -449,6 +519,25 @@ export default function PosBilling() {
                 ))}
               </div>
               {mode === 'credit' && <p className="text-xs text-red-700">Credit bill — full amount stays due on {customer.name}{customer.id === WALK_IN.id ? ' (select a customer first)' : ''}.</p>}
+              {mode === 'split' ? (
+                <div className="border border-sky-300 bg-sky-50 p-2 space-y-2">
+                  {split.map((p, i) => (
+                    <div key={i} className="flex gap-2">
+                      <select value={p.mode} onChange={e => setSplit(split.map((x, j) => j === i ? { ...x, mode: e.target.value as SplitMode } : x))}
+                        className="w-28 border px-2 py-1.5 font-bold bg-white">
+                        <option value="cash">Cash</option><option value="card">Card</option><option value="upi">UPI</option>
+                      </select>
+                      <input type="number" min={0} step="1" autoFocus={i === 0} value={p.amt} placeholder={i === 1 ? String(splitAmts[1]) : 'Amount'}
+                        onChange={e => setSplit(split.map((x, j) => j === i ? { ...x, amt: e.target.value } : x))}
+                        onKeyDown={e => e.key === 'Enter' && (i === 0 ? (e.currentTarget.parentElement?.nextElementSibling?.querySelector('input') as HTMLInputElement | null)?.focus() : save())}
+                        className="flex-1 border px-2 py-1.5 text-xl font-bold text-right bg-white" />
+                    </div>
+                  ))}
+                  <div className={`flex justify-between text-sm font-bold ${paid > t.grand ? 'text-red-600' : 'text-green-700'}`}>
+                    <span>Split total</span><span>{inr(paid)} of {inr(t.grand)}</span>
+                  </div>
+                </div>
+              ) : (
               <div className="grid grid-cols-2 gap-2">
                 <div className="text-center p-2 bg-green-50 border border-green-300">
                   <div className={lbl}>Payable Now</div>
@@ -461,6 +550,7 @@ export default function PosBilling() {
                     className="w-full text-center text-2xl font-bold bg-transparent outline-none" />
                 </div>
               </div>
+              )}
               <div className="text-center p-2 bg-[#e2f0d9] border border-[#c5e0b4]">
                 <div className="text-[11px] font-bold uppercase text-green-700">Change to Return</div>
                 <div className="text-xl font-bold text-green-700">{inr(change)}</div>
@@ -489,6 +579,26 @@ export default function PosBilling() {
               ))}
             </div>
           )}
+        </Dialog>
+      )}
+
+      {/* ── New customer (Enter on unknown phone) ── */}
+      {newCust && (
+        <Dialog title="New Customer" onClose={() => setNewCust(null)}>
+          <form onSubmit={e => { e.preventDefault(); saveNewCust() }} className="space-y-3 text-sm">
+            <p className="text-xs text-gray-500">No customer found. Save a new one for this bill.</p>
+            <label className="block"><span className="font-semibold">Mobile *</span>
+              <input value={newCust.phone} onChange={e => setNewCust({ ...newCust, phone: e.target.value })} inputMode="numeric" maxLength={10}
+                className="w-full border px-3 py-2 mt-1" /></label>
+            <label className="block"><span className="font-semibold">Name *</span>
+              <input autoFocus value={newCust.name} onChange={e => setNewCust({ ...newCust, name: e.target.value })}
+                className="w-full border px-3 py-2 mt-1" /></label>
+            <label className="block"><span className="font-semibold">City</span>
+              <input value={newCust.city} onChange={e => setNewCust({ ...newCust, city: e.target.value })} className="w-full border px-3 py-2 mt-1" /></label>
+            <button type="submit" className="w-full py-2 text-white font-bold" style={{ background: ACCENT }}>
+              <i className="fas fa-save mr-2" />Save &amp; Select (Enter)
+            </button>
+          </form>
         </Dialog>
       )}
 

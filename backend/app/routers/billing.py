@@ -39,19 +39,21 @@ async def list_invoices(
     status: Optional[str] = Query(None),
     from_date: Optional[date] = Query(None),
     to_date: Optional[date] = Query(None),
+    outlet_id: Optional[int] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(25, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     current_user: current_user_dep = Depends(get_current_user),
 ):
     items, total = await billing_service.list_invoices(
-        db, customer_id, status, from_date, to_date, page, per_page
+        db, customer_id, status, from_date, to_date, page, per_page, outlet_id
     )
     return paginated_response[invoice_list_out](
-        items=[invoice_list_out.model_validate(i) for i in items],
+        data=[invoice_list_out.model_validate(i) for i in items],
         total=total,
         page=page,
         per_page=per_page,
+        total_pages=-(-total // per_page),
     )
 
 

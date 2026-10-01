@@ -5,6 +5,7 @@ import type { CompanySettings } from '../api/company'
 const esc = (v: unknown) =>
   String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
 const n2 = (v: unknown) => Number(v || 0).toFixed(2)
+const modeLabel = (m: string) => m === 'upi' ? 'UPI' : m.charAt(0).toUpperCase() + m.slice(1)
 
 export interface receipt_extra {
   customer_name?: string
@@ -87,7 +88,7 @@ export function printReceipt(inv: invoice_out, s: Partial<CompanySettings>, x: r
     <table style="font-size:9.5px;">
       <tr><td>Bill No: <strong>${esc(inv.invoice_no)}</strong></td><td style="text-align:right;">Date: <strong>${date}</strong></td></tr>
       ${x.cashier ? `<tr><td colspan="2">Cashier: <strong>${esc(x.cashier)}</strong></td></tr>` : ''}
-      <tr><td>Pay: ${esc(inv.payment_mode.charAt(0).toUpperCase() + inv.payment_mode.slice(1))}</td><td style="text-align:right;">Time: <strong>${time}</strong></td></tr>
+      <tr><td>Pay: ${esc(modeLabel(inv.payment_mode))}</td><td style="text-align:right;">Time: <strong>${time}</strong></td></tr>
     </table>
   </div>
   ${walkIn ? '' : `<div style="font-size:9.5px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px dashed #ccc;">
@@ -107,7 +108,8 @@ export function printReceipt(inv: invoice_out, s: Partial<CompanySettings>, x: r
     ${row('GRAND TOTAL', `&#8377;${n2(inv.total_amount)}`, 'font-weight:bold;font-size:11.5px;border-top:1px dashed #000;border-bottom:1px dashed #000;')}
     ${saved > 0 ? row('&#127881; You Saved', `&#8377;${saved.toFixed(2)}`, 'font-size:11.5px;font-weight:600;') : ''}
     ${change > 0.004 ? row('Cash Tendered', `&#8377;${x.tendered!.toFixed(2)}`) + row('Change Returned', `&#8377;${change.toFixed(2)}`, 'font-weight:bold;') : ''}
-    ${row('Paid Amount', `&#8377;${n2(inv.paid_amount)}`)}
+    ${(inv.payments || []).map(p => row(`Paid by ${esc(modeLabel(p.payment_mode))}`, `&#8377;${n2(p.amount)}`)).join('')}
+    ${row('Paid Amount', `&#8377;${n2(inv.paid_amount)}`, (inv.payments || []).length ? 'font-weight:bold;' : '')}
     ${row('Balance Due', `&#8377;${n2(inv.due_amount)}`, 'font-weight:bold;')}
   </table>
   ${gstSummary ? `<div style="font-size:8.5px;border-bottom:1px dashed #000;padding:4px 0 6px;margin-bottom:6px;line-height:1.35;">

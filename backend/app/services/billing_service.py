@@ -15,6 +15,7 @@ from app.models.invoice import (
     stock_ledger, estimate, estimate_item,
 )
 from app.models.product import product as product_model
+from app.models.outlet import outlet as outlet_model
 from app.schemas.invoice import (
     invoice_create, payment_in,
     estimate_create, estimate_item_in, invoice_item_in,
@@ -228,7 +229,14 @@ async def create_invoice(
         totals["round_off"] = rounded - totals["total_amount"]
         totals["total_amount"] = rounded
 
-    paid = data.paid_amount
+    if data.payments:
+        paid = _two(sum(p.amount for p in data.payments))
+        modes = {p.payment_mode for p in data.payments}
+        data.payment_mode = modes.pop() if len(modes) == 1 else "split"
+    else:
+        paid = data.paid_amount
+    if paid > totals["total_amount"]:
+        raise ValueError("Paid amount is more than the bill total")
     due  = _two(totals["total_amount"] - paid)
     status = "paid" if due <= Decimal("0") else ("partial" if paid > Decimal("0") else "unpaid")
 
@@ -269,19 +277,19 @@ async def create_invoice(
         await _update_product_stock(db, item_in.product_id, -item_in.qty)
 
     # record payment if paid_amount > 0
-    if paid > Decimal("0"):
-        pay_no = await _next_payment_no(db)
-        pay = invoice_payment(
-            payment_no=pay_no,
+    parts = [(p.payment_mode, p.amount) for p in data.payments] or ([(data.payment_mode, paid)] if paid > Decimal("0") else [])
+    for mode, amount in parts:
+        db.add(invoice_payment(
+            payment_no=await _next_payment_no(db),
             outlet_id=data.outlet_id,
             customer_id=data.customer_id,
             invoice_id=inv.id,
-            amount=paid,
+            amount=amount,
             payment_date=data.invoice_date,
-            payment_mode=data.payment_mode,
+            payment_mode=mode,
             created_by=user_id,
-        )
-        db.add(pay)
+        ))
+        await db.flush()  # next _next_payment_no must count this row
 
     await db.commit()
     await db.refresh(inv)
@@ -325,8 +333,11 @@ async def list_invoices(
     to_date: Optional[date] = None,
     page: int = 1,
     per_page: int = 25,
+    outlet_id: Optional[int] = None,
 ):
     q = select(invoice).order_by(invoice.id.desc())
+    if outlet_id:
+        q = q.where(invoice.outlet_id == outlet_id)
     if customer_id:
         q = q.where(invoice.customer_id == customer_id)
     if status:
@@ -340,8 +351,18 @@ async def list_invoices(
     total = total_res.scalar() or 0
 
     q = q.offset((page - 1) * per_page).limit(per_page)
-    rows = await db.execute(q)
-    items = rows.scalars().all()
+    rows = await db.execute(q.add_columns(outlet_model.outlet_name).outerjoin(outlet_model, outlet_model.id == invoice.outlet_id))
+    items = []
+    for inv, outlet_name in rows.all():
+        inv.outlet_name = outlet_name  # plain attribute for invoice_list_out, not a column
+        inv.split = []
+        items.append(inv)
+    # split bills: attach per-mode amounts so the list can show "Cash 300 + UPI 200"
+    by_id = {i.id: i for i in items if i.payment_mode == "split"}
+    if by_id:
+        pays = await db.execute(select(invoice_payment).where(invoice_payment.invoice_id.in_(by_id)).order_by(invoice_payment.id))
+        for p in pays.scalars():
+            by_id[p.invoice_id].split.append({"payment_mode": p.payment_mode, "amount": p.amount})
     return items, total
 
 

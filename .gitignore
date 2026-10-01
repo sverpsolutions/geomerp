@@ -49,3 +49,10 @@ Thumbs.db
 
 # Store server list with credentials
 outlets_data.csv
+
+# Client / competitor documents (confidential - repo is public)
+*Proposal*.pdf
+Geom365*.pdf
+
+# Competitor gap analysis (quotes a competitor proposal - repo is public)
+GEOM365_*.md

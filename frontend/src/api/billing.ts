@@ -87,6 +87,9 @@ export interface invoice_list_out {
   payment_mode: string
   status: string
   created_at: string
+  outlet_id: number | null
+  outlet_name: string | null
+  split: { payment_mode: string; amount: number }[]
 }
 
 export interface invoice_create {
@@ -101,6 +104,7 @@ export interface invoice_create {
   items: invoice_item_in[]
   paid_amount?: number
   round_off?: boolean
+  payments?: { payment_mode: string; amount: number }[]  // split payment
 }
 
 export interface estimate_item_in {
@@ -165,10 +169,11 @@ export interface estimate_create {
 }
 
 export interface paginated<T> {
-  items: T[]
+  data: T[]
   total: number
   page: number
   per_page: number
+  total_pages: number
 }
 
 // ─── Billing API ──────────────────────────────────────────────────────────────

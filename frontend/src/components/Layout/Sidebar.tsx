@@ -92,7 +92,7 @@ const NAV_SECTIONS = [
       { label: 'Physical Audit', to: '/inventory/audit', icon: 'fas fa-boxes' },
       { label: 'Barcode Printing', to: '/inventory/barcode', icon: 'fas fa-barcode' },
       { label: 'Stock Transfer OUT', to: '/inventory/transfer/out', icon: 'fas fa-sign-out-alt' },
-      { label: 'Multi-Branch Transfer Out', to: '/inventory/transfer/multi', icon: 'fas fa-layer-group' },
+      { label: 'New Transfer Out', to: '/inventory/transfer/multi', icon: 'fas fa-plus-circle' },
       { label: 'Stock Transfer IN', to: '/inventory/transfer/in', icon: 'fas fa-sign-in-alt' },
       { label: 'Global Store Sync', to: '/inventory/sync', icon: 'fas fa-cloud-download-alt' },
       { label: 'Synchronization Monitor', to: '/inventory/monitor', icon: 'fas fa-satellite' },
@@ -226,9 +226,9 @@ export default function Sidebar({ collapsed, onToggle, isPinned, onPinToggle }: 
   return (
     <aside 
       id="app-sidebar"
-      className={`sidebar flex flex-col h-screen transition-all duration-300 relative border-r border-slate-200 overflow-hidden shadow-2xl ${collapsed ? 'w-0 border-none' : (isExpanded ? 'w-[240px]' : 'w-[64px]')}`}
+      className={`sidebar flex flex-col h-screen transition-all duration-300 relative overflow-hidden ${collapsed ? 'w-0' : (isExpanded ? 'w-[248px]' : 'w-[64px]')}`}
       style={{ 
-        minWidth: collapsed ? '0px' : (isExpanded ? '240px' : '64px'),
+        minWidth: collapsed ? '0px' : (isExpanded ? '248px' : '64px'),
         zIndex: isAutoHiding && isHovered ? 100 : 50,
         position: isAutoHiding && isHovered ? 'absolute' : 'relative',
         left: 0,
@@ -237,22 +237,19 @@ export default function Sidebar({ collapsed, onToggle, isPinned, onPinToggle }: 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* ── Content Container ── */}
-      <div className={`${showFull ? 'w-[240px]' : 'w-[64px]'} flex flex-col h-full shrink-0 transition-all duration-300`}>
+      <div className={`${showFull ? 'w-[248px]' : 'w-[64px]'} flex flex-col h-full shrink-0 transition-all duration-300`}>
         {/* ── Brand Header ── */}
-        <div className="h-[56px] border-b border-slate-200 flex items-center px-4 gap-3 shrink-0 relative">
-          <div className="w-8 h-8 rounded-fiori bg-primary flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="h-[64px] flex items-center px-4 gap-3 shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-[#14A3A8] text-[#06222A] flex items-center justify-center shrink-0 overflow-hidden font-bold text-[15px]">
             {logo_path && logo_path !== '/logo.jpg' ? (
               <img src={logo_path} alt="Logo" className="w-full h-full object-cover" />
-            ) : (
-              <i className="fas fa-store text-white text-xs"></i>
-            )}
+            ) : 'MB'}
           </div>
           
           {showFull && (
             <div className="min-w-0 flex-1 animate-in fade-in slide-in-from-left-2 duration-300">
-              <p className="text-slate-800 text-[12px] font-bold m-0 leading-tight line-clamp-2 break-words" title={brand_name}>{brand_name}</p>
-              <span className="block text-[9px] text-slate-500 uppercase font-semibold tracking-wider leading-tight mt-0.5">Head Office</span>
+              <p className="text-white text-[15px] font-semibold m-0 leading-tight truncate" title={brand_name}>{brand_name}</p>
+              <span className="block text-[12px] text-[#8A9AA5] leading-tight mt-0.5">Head Office ERP</span>
             </div>
           )}
           
@@ -260,84 +257,65 @@ export default function Sidebar({ collapsed, onToggle, isPinned, onPinToggle }: 
             <div className="flex gap-1 animate-in fade-in duration-500">
               <button 
                 onClick={onPinToggle}
-                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${isPinned ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600'}`}
+                className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors ${isPinned ? 'bg-[#16303B] text-white' : 'text-[#8A9AA5] hover:bg-[#16303B] hover:text-white'}`}
                 title={isPinned ? "Unpin Sidebar (Auto-Hide)" : "Pin Sidebar"}
+                aria-label={isPinned ? "Unpin sidebar" : "Pin sidebar"}
               >
-                <i className={`fas fa-thumbtack text-[10px] ${isPinned ? '' : '-rotate-45'}`}></i>
+                <i className={`fas fa-thumbtack text-[11px] ${isPinned ? '' : '-rotate-45'}`}></i>
               </button>
-              
               <button 
                 onClick={onToggle}
-                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500"
+                className="w-8 h-8 rounded-md flex items-center justify-center transition-colors text-[#8A9AA5] hover:bg-[#16303B] hover:text-white"
                 title="Close Sidebar"
+                aria-label="Close sidebar"
               >
-                <i className="fas fa-times text-[10px]"></i>
+                <i className="fas fa-times text-[11px]"></i>
               </button>
             </div>
           )}
         </div>
 
         {/* ── Navigation ── */}
-        <nav className="flex-1 overflow-y-auto py-4 sidebar-scroll">
+        <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 sidebar-scroll" aria-label="Main">
           {NAV_SECTIONS.map((section) => {
             const isOpen = openGroups.includes(section.label);
             const isGroupActive = section.children?.some(c => location.pathname.startsWith(c.to)) || (section.to && location.pathname === section.to);
 
-            // Item Link (Dashboard, etc.)
             if (section.to) {
               return (
                 <NavLink 
                   key={section.to}
                   to={section.to} 
-                  className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''} ${!showFull ? 'justify-center px-0' : ''}`}
-                  style={({ isActive }) => isActive ? { 
-                    backgroundColor: `${section.color}20`, 
-                    color: '#0F172A',
-                    borderLeft: showFull ? `3px solid ${section.color}` : 'none'
-                  } : {}}
+                  title={!showFull ? section.label : ''}
+                  className={({ isActive }) => `sidebar-item relative ${isActive ? 'active' : ''} ${!showFull ? 'justify-center px-0' : ''}`}
                 >
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${section.color}15` }}>
-                    <i className={`${section.icon} text-sm`} style={{ color: section.color }}></i>
-                  </div>
+                  <i className={`${section.icon} w-5 text-center text-[15px]`}></i>
                   {showFull && <span className="animate-in fade-in slide-in-from-left-1 duration-200">{section.label}</span>}
                 </NavLink>
               );
             }
 
-            // Group Dropdown (Products, Masters, etc.)
             return (
-              <div key={section.label} className="mt-1">
+              <div key={section.label}>
                 <button 
                   onClick={() => showFull && toggleGroup(section.label)}
-                  className={`sidebar-item w-full ${isGroupActive ? 'active' : ''} ${!showFull ? 'justify-center px-0' : ''}`}
-                  style={isGroupActive ? { 
-                    backgroundColor: `${section.color}15`, 
-                    color: '#0F172A',
-                  } : {}}
+                  className={`sidebar-item relative w-full ${isGroupActive ? 'active' : ''} ${!showFull ? 'justify-center px-0' : ''}`}
                   title={!showFull ? section.label : ''}
+                  aria-expanded={showFull ? isOpen : undefined}
                 >
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${section.color}15` }}>
-                    <i className={`${section.icon} text-sm`} style={{ color: section.color }}></i>
-                  </div>
+                  <i className={`${section.icon} w-5 text-center text-[15px]`}></i>
                   {showFull && <span className="flex-1 text-left animate-in fade-in slide-in-from-left-1 duration-200">{section.label}</span>}
-                  {showFull && <i className={`fas fa-chevron-${isOpen ? 'down' : 'right'} text-[10px] opacity-40`}></i>}
+                  {showFull && <i className={`fas fa-chevron-${isOpen ? 'down' : 'right'} text-[10px] opacity-50`}></i>}
                 </button>
 
                 {showFull && isOpen && (
-                  <div className="bg-slate-50 py-1">
+                  <div className="ml-[21px] pl-3 my-1 border-l border-[#1E313C] space-y-0.5">
                     {section.children?.map(child => (
                       <NavLink 
                         key={child.to} 
                         to={child.to} 
-                        className={({ isActive }) => `flex items-center gap-3 px-4 pl-6 h-9 text-[12px] font-medium transition-colors ${isActive ? 'text-primary' : 'text-slate-500 hover:text-slate-800'}`}
-                        style={({ isActive }) => isActive ? { 
-                          color: section.color,
-                          backgroundColor: `${section.color}10`
-                        } : {}}
+                        className={({ isActive }) => `flex items-center h-[34px] px-2.5 rounded-md text-[13px] transition-colors ${isActive ? 'bg-[#14A3A8] text-[#06222A] font-semibold' : 'text-[#B9C4CC] hover:bg-[#16303B] hover:text-white'}`}
                       >
-                        <div className="w-6 h-6 rounded flex items-center justify-center shrink-0 ml-4">
-                           <i className={`${child.icon} text-[10px] text-center`} style={{ color: section.color }}></i>
-                        </div>
                         <span className="truncate">{child.label}</span>
                       </NavLink>
                     ))}
@@ -349,19 +327,19 @@ export default function Sidebar({ collapsed, onToggle, isPinned, onPinToggle }: 
         </nav>
 
         {/* ── Footer ── */}
-        <div className={`p-3 border-t border-slate-200 space-y-2 ${!showFull ? 'items-center flex flex-col' : ''}`}>
-          <div className={`flex items-center gap-3 bg-slate-100 rounded-fiori ${showFull ? 'px-3 py-2' : 'w-10 h-10 justify-center'}`} title={!showFull ? user?.name : ''}>
-            <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-[11px] font-bold text-white shrink-0">
+        <div className={`p-3 border-t border-[#1E313C] space-y-1 ${!showFull ? 'items-center flex flex-col' : ''}`}>
+          <div className={`flex items-center gap-3 ${showFull ? 'px-2 py-2' : 'w-10 h-10 justify-center'}`} title={!showFull ? user?.name : ''}>
+            <div className="w-8 h-8 rounded-full bg-[#1E313C] flex items-center justify-center text-[13px] font-semibold text-white shrink-0">
               {(user?.name || 'A').charAt(0).toUpperCase()}
             </div>
             {showFull && (
               <div className="min-w-0 flex-1 animate-in fade-in duration-300">
-                <p className="text-slate-800 text-[12px] font-bold truncate m-0">{user?.name || 'Admin'}</p>
-                <p className="text-slate-500 text-[10px] uppercase m-0">{user?.role || 'User'}</p>
+                <p className="text-white text-[13px] font-medium truncate m-0">{user?.name || 'Admin'}</p>
+                <p className="text-[#8A9AA5] text-[12px] m-0 truncate">{user?.role || 'User'}</p>
               </div>
             )}
           </div>
-          <button onClick={logout} className={`sidebar-item w-full text-red-500 hover:bg-red-50 ${!showFull ? 'justify-center px-0' : ''}`} title="Logout">
+          <button onClick={logout} className={`sidebar-item relative w-full hover:!text-[#FCA5A5] ${!showFull ? 'justify-center px-0' : ''}`} title="Logout">
             <i className="fas fa-sign-out-alt w-5 text-center"></i>
             {showFull && <span className="animate-in fade-in duration-300">Logout</span>}
           </button>

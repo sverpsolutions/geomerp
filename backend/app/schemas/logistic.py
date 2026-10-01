@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Optional
 
 # --- Item Schemas ---
@@ -13,6 +13,8 @@ class logistic_transfer_item_create(logistic_transfer_item_base):
 
 class logistic_transfer_item_out(logistic_transfer_item_base):
     id: int
+    name: Optional[str] = None
+    item_code: Optional[str] = None
     class Config:
         from_attributes = True
 
@@ -38,6 +40,11 @@ class logistic_box_base(BaseModel):
     seal_number: Optional[str] = None
     box_type: Optional[str] = None
 
+    @field_validator('weight_kg', 'length_cm', 'width_cm', 'height_cm', mode='before')
+    @classmethod
+    def _blank_is_none(cls, v):  # form sends "" for empty number inputs
+        return None if v == '' else v
+
 class logistic_box_create(logistic_box_base):
     items: List[logistic_box_item_create] = []
 
@@ -60,6 +67,11 @@ class logistic_dispatch_detail_base(BaseModel):
     driver_mobile: Optional[str] = None
     driver_license_no: Optional[str] = None
     helper_name: Optional[str] = None
+
+    @field_validator('eta', mode='before')
+    @classmethod
+    def _blank_eta_is_none(cls, v):  # empty datetime-local input sends ""
+        return None if v == '' else v
 
 class logistic_dispatch_detail_update(logistic_dispatch_detail_base):
     pass

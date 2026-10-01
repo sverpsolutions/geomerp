@@ -40,30 +40,31 @@ const TabBar = () => {
   if (tabs.length === 0) return null;
 
   return (
-    <div className="flex items-center bg-white border-b border-border px-2 overflow-x-auto no-scrollbar h-[38px] shrink-0">
+    <div className="flex items-end gap-1 bg-app-bg border-b border-border px-4 pt-1.5 overflow-x-auto no-scrollbar h-[42px] shrink-0">
       {tabs.map((tab) => {
         const isActive = activeTabId === tab.id;
         return (
           <div
             key={tab.id}
             onClick={() => handleTabClick(tab.id, tab.path)}
-            className={`group flex items-center h-full gap-2 px-4 cursor-pointer transition-all border-r border-border min-w-[120px] max-w-[200px] relative ${
+            className={`group flex items-center h-full gap-2 pl-3.5 pr-2 cursor-pointer transition-colors rounded-t-lg border border-b-0 min-w-[120px] max-w-[220px] relative ${
               isActive 
-                ? 'bg-primary-light text-primary border-b-2 border-b-primary' 
-                : 'text-text-secondary hover:bg-bg-app'
+                ? 'bg-white text-text-primary border-border -mb-px h-[calc(100%+1px)]' 
+                : 'text-text-secondary border-transparent hover:bg-white/70'
             }`}
           >
-            <span className="text-[11px] font-bold uppercase truncate flex-1">
+            <span className={`text-[13px] truncate flex-1 ${isActive ? 'font-semibold' : 'font-medium'}`}>
               {tab.title}
             </span>
             
             <button
               onClick={(e) => handleClose(e, tab.id)}
-              className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
-                isActive ? 'text-primary hover:bg-primary hover:text-white' : 'text-text-muted hover:bg-border opacity-0 group-hover:opacity-100'
+              aria-label={`Close ${tab.title}`}
+              className={`w-6 h-6 rounded flex items-center justify-center transition-colors text-text-muted hover:bg-app-bg hover:text-text-primary ${
+                isActive ? '' : 'opacity-0 group-hover:opacity-100'
               }`}
             >
-              <i className="fas fa-times text-[9px]"></i>
+              <i className="fas fa-times text-[10px]"></i>
             </button>
           </div>
         );

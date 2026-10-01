@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 const HRDashboard = () => {
   const departments = [
-    { name: 'Production', count: 18, color: '#2563eb' },
+    { name: 'Production', count: 18, color: '#0E5C63' },
     { name: 'Accounts', count: 6, color: '#059669' },
     { name: 'Logistics', count: 8, color: '#d97706' },
     { name: 'Sales', count: 5, color: '#7c3aed' },

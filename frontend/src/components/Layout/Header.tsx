@@ -166,11 +166,12 @@ export default function Header({ onSidebarToggle }: HeaderProps) {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <header className="h-[56px] bg-white border-b border-border flex items-center px-6 gap-4 sticky top-0 z-50">
+    <header className="h-[64px] bg-white border-b border-border flex items-center px-6 gap-4 sticky top-0 z-50">
       <button 
         id="sidebar-toggle-btn"
         onClick={onSidebarToggle}
-        className="w-9 h-9 rounded-fiori hover:bg-bg-app flex items-center justify-center text-text-secondary transition-all"
+        className="w-10 h-10 rounded-lg hover:bg-app-bg flex items-center justify-center text-text-secondary transition-colors"
+        aria-label="Toggle sidebar"
       >
         <i className="fas fa-bars"></i>
       </button>
@@ -178,33 +179,32 @@ export default function Header({ onSidebarToggle }: HeaderProps) {
       {/* Global Command Bar wrapper */}
       <div 
         onClick={() => setShowCommandPalette(true)}
-        className="flex-1 flex justify-center max-w-2xl mx-auto cursor-pointer"
+        className="flex-1 max-w-xl cursor-pointer"
       >
         <div className="relative group w-full">
-          <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-[12px]"></i>
-          <div className="w-full h-9 bg-bg-app border border-border rounded-fiori pl-9 pr-32 flex items-center text-[13px] text-text-muted select-none">
-            Search forms or HSN rules...
+          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted text-[13px]"></i>
+          <div className="w-full h-10 bg-[#F9FAFB] border border-border-strong rounded-lg pl-10 pr-20 flex items-center text-[14px] text-text-muted select-none group-hover:border-primary transition-colors">
+            Search screens, items, invoices…
           </div>
-          <div className="absolute inset-y-0 right-2 flex items-center gap-1">
-             <span className="text-[9px] font-bold text-text-muted border border-border px-1.5 rounded bg-white uppercase">Click to open</span>
-             <kbd className="px-1.5 py-0.5 bg-white border border-border rounded text-[10px] font-mono shadow-sm">Ctrl K</kbd>
+          <div className="absolute inset-y-0 right-2.5 flex items-center">
+             <kbd className="px-1.5 py-0.5 bg-white border border-border rounded text-[11px] font-mono text-text-secondary">Ctrl K</kbd>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-4 ml-auto">
         {/* Global Tools */}
-        <div className="flex items-center gap-4 pr-4 border-r border-border">
+        <div className="flex items-center gap-1 pr-4 border-r border-border">
           {/* Stunning Interactive Notification Bell */}
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => setShowNotifPanel(!showNotifPanel)}
-              className="text-text-secondary hover:text-primary transition-all relative w-9 h-9 rounded-fiori hover:bg-bg-app flex items-center justify-center"
+              className="text-text-secondary hover:text-primary transition-all relative w-10 h-10 rounded-lg hover:bg-app-bg flex items-center justify-center"
               title="Notifications"
             >
               <i className="far fa-bell text-lg"></i>
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">
+                <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-[#D92D20] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
@@ -212,11 +212,11 @@ export default function Header({ onSidebarToggle }: HeaderProps) {
 
             {/* Glassmorphism Notification dropdown panel */}
             {showNotifPanel && (
-              <div className="absolute right-0 mt-3.5 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-[1000] animate-in fade-in slide-in-from-top-3 duration-200">
-                <div className="bg-slate-900 px-4 py-3 flex justify-between items-center text-white">
-                  <span className="text-xs font-black uppercase tracking-wider">Alert Center ({unreadCount})</span>
+              <div className="absolute right-0 mt-3.5 w-80 bg-white rounded-xl shadow-xl border border-border overflow-hidden z-[1000] animate-in fade-in slide-in-from-top-3 duration-200">
+                <div className="px-4 py-3 flex justify-between items-center border-b border-border">
+                  <span className="text-[14px] font-semibold text-text-primary">Notifications ({unreadCount})</span>
                   {notifications.length > 0 && (
-                    <button onClick={handleClearAll} className="text-[9px] font-bold uppercase text-slate-400 hover:text-white transition-colors">
+                    <button onClick={handleClearAll} className="text-[13px] font-medium text-primary hover:underline">
                       Clear All
                     </button>
                   )}
@@ -252,7 +252,7 @@ export default function Header({ onSidebarToggle }: HeaderProps) {
 
           <button 
             onClick={() => setShowBackupModal(true)}
-            className="text-text-secondary hover:text-primary transition-all w-9 h-9 rounded-fiori hover:bg-bg-app flex items-center justify-center"
+            className="text-text-secondary hover:text-primary transition-all w-10 h-10 rounded-lg hover:bg-app-bg flex items-center justify-center"
             title="Database Backup"
           >
             <i className="fas fa-database text-lg"></i>
@@ -260,7 +260,7 @@ export default function Header({ onSidebarToggle }: HeaderProps) {
 
           <button 
             onClick={() => addTab({ id: '/help', title: 'System Help', path: '/help' })}
-            className="text-text-secondary hover:text-primary transition-all w-9 h-9 rounded-fiori hover:bg-bg-app flex items-center justify-center"
+            className="text-text-secondary hover:text-primary transition-all w-10 h-10 rounded-lg hover:bg-app-bg flex items-center justify-center"
             title="System Help (ID: 999)"
           >
             <i className="far fa-question-circle text-lg"></i>
@@ -268,7 +268,7 @@ export default function Header({ onSidebarToggle }: HeaderProps) {
           
           <button
             onClick={() => addTab({ id: '/portals', title: 'Portal Hub', path: '/portals' })}
-            className="text-text-secondary hover:text-primary transition-all w-9 h-9 rounded-fiori hover:bg-bg-app flex items-center justify-center"
+            className="text-text-secondary hover:text-primary transition-all w-10 h-10 rounded-lg hover:bg-app-bg flex items-center justify-center"
             title="Portal Hub (ID: 990)"
           >
             <i className="fas fa-th-large text-lg"></i>
@@ -278,10 +278,10 @@ export default function Header({ onSidebarToggle }: HeaderProps) {
         {/* User Profile */}
         <div className="flex items-center gap-3 pl-2">
           <div className="text-right hidden sm:block">
-            <p className="text-[12px] font-bold text-text-primary leading-none m-0">{user?.name || 'Admin User'}</p>
-            <p className="text-[10px] font-bold text-text-muted uppercase m-0 mt-1">{user?.role || 'Senior Manager'}</p>
+            <p className="text-[13px] font-semibold text-text-primary leading-none m-0">{user?.name || 'Admin User'}</p>
+            <p className="text-[12px] text-text-muted m-0 mt-1">{user?.role || 'Senior Manager'}</p>
           </div>
-          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20">
+          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-semibold">
             {(user?.name || 'A').charAt(0).toUpperCase()}
           </div>
         </div>

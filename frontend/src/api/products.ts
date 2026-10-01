@@ -92,6 +92,7 @@ export interface product_search_item {
   barcode_crt?: string | null
   gst_percent?: string
   hsn_code?: string | null
+  stock_qty?: string | null  // only when searched with outlet_id
 }
 
 export const products_api = {
@@ -102,8 +103,8 @@ export const products_api = {
     base_uom_id?: number; purchase_uom_id?: number; storage_type_id?: number
   }) => api.get<paginated<product_list_item>>('/products', { params }),
 
-  search: (q: string, limit = 20) =>
-    api.get<product_search_item[]>('/products/search', { params: { q, limit } }),
+  search: (q: string, limit = 20, outlet_id?: number) =>
+    api.get<product_search_item[]>('/products/search', { params: { q, limit, outlet_id } }),
 
   get: (id: number) => api.get<product_detail>(`/products/${id}`),
   create: (data: object) => api.post<product_detail>('/products', data),

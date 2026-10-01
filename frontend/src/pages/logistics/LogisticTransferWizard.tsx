@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Truck, Package, Box, User, Printer, CheckCircle, 
@@ -46,6 +46,14 @@ const LogisticTransferWizard = () => {
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [highlighted, setHighlighted] = useState(0);
+  // scoped to this wizard: other open tabs keep their own copy mounted
+  const itemsRef = useRef<HTMLDivElement>(null);
+  const focusQty = (productId: number) => setTimeout(() => {
+    const el = itemsRef.current?.querySelector<HTMLInputElement>(`[data-qty="${productId}"]`);
+    el?.focus(); el?.select();
+  }, 0);
+  const focusSearch = () => itemsRef.current?.querySelector<HTMLInputElement>('[data-item-search]')?.focus();
 
   // Step 3 State
   const [boxes, setBoxes] = useState<any[]>([]);
@@ -98,14 +106,15 @@ const LogisticTransferWizard = () => {
       setPriority(res.priority);
       setNotes(res.notes || '');
       setSourceTransferId(res.source_transfer_id);
-      setSelectedItems(res.items || []);
+      setSelectedItems((res.items || []).map((i: any) => ({ ...i, quantity: parseFloat(i.quantity) })));
       setBoxes(res.boxes || []);
       if (res.dispatch_details) {
         setDispatchInfo(res.dispatch_details);
       }
       
       // Determine step based on status
-      if (res.status === 'DRAFT') setCurrentStep(1);
+      // DRAFT: header is already saved, resume at item selection
+      if (res.status === 'DRAFT') setCurrentStep(2);
       else if (res.status === 'PACKING') setCurrentStep(3);
       else if (res.status === 'PACKED') setCurrentStep(4);
       else if (res.status === 'DISPATCHED') setCurrentStep(6);
@@ -153,6 +162,8 @@ const LogisticTransferWizard = () => {
   const handleNext = async () => {
     if (currentStep === 1) {
       if (!sourceId || !destId) return toast.error('Please select locations');
+      // Already created (reopened or came Back): don't create a duplicate
+      if (transfer) return setCurrentStep(2);
       setLoading(true);
       try {
         const data = {
@@ -210,23 +221,32 @@ const LogisticTransferWizard = () => {
   };
 
   // --- Step 2 Helpers ---
+  // query the visible results belong to; keystroke responses can arrive out of order
+  const latestQuery = useRef('');
+  const resultsFor = useRef('');
+  const fetchItems = (q: string) => products_api.search(q, 20, sourceId ? parseInt(sourceId) : undefined).then(r => r.data || []);
   const searchItems = async (q: string) => {
-    if (q.length < 2) return setSearchResults([]);
+    latestQuery.current = q;
+    if (q.length < 2) { resultsFor.current = ''; return setSearchResults([]); }
     try {
-      const res = await products_api.search(q);
-      setSearchResults(res.data || []);
+      const data = await fetchItems(q);
+      if (latestQuery.current !== q) return;  // stale
+      resultsFor.current = q;
+      setSearchResults(data);
+      setHighlighted(0);
     } catch (err) {}
   };
 
   const addItem = (product: any) => {
-    const exists = selectedItems.find(i => i.id === product.id || i.product_id === product.id);
-    if (exists) {
-      toast.error('Item already added');
-      return;
-    }
-    setSelectedItems([...selectedItems, { ...product, product_id: product.id, quantity: 1 }]);
+    latestQuery.current = '';  // drop any search still in flight
+    resultsFor.current = '';
     setSearchResults([]);
     setSearchQuery('');
+    // scanning an item already in the list just jumps to its qty
+    if (!selectedItems.some(i => i.product_id === product.id)) {
+      setSelectedItems([...selectedItems, { ...product, product_id: product.id, quantity: 1 }]);
+    }
+    focusQty(product.id);
   };
 
   const removeItem = (id: number) => {
@@ -386,7 +406,7 @@ const LogisticTransferWizard = () => {
         )}
 
         {currentStep === 2 && (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+          <div ref={itemsRef} className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
             <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
               <Package className="text-primary" /> Select Items
             </h2>
@@ -404,19 +424,47 @@ const LogisticTransferWizard = () => {
                   setSearchQuery(e.target.value);
                   searchItems(e.target.value);
                 }}
+                data-item-search
+                onKeyDown={async e => {
+                  // scanner sends barcode + Enter faster than the debounced search returns
+                  // read the DOM value: a scanner's Enter can arrive before state re-renders
+                  const typed = e.currentTarget.value;
+                  if (e.key === 'Enter' && typed.trim() && resultsFor.current !== typed) {
+                    e.preventDefault();
+                    const q = typed;
+                    latestQuery.current = q;
+                    let data: any[];
+                    try { data = await fetchItems(q.trim()); } catch { return toast.error('Item search failed'); }
+                    if (latestQuery.current !== q) return;
+                    if (data.length) addItem(data[0]); else toast.error('Item not found');
+                    return;
+                  }
+                  if (!searchResults.length) return;
+                  if (e.key === 'ArrowDown') { e.preventDefault(); setHighlighted(h => Math.min(h + 1, searchResults.length - 1)); }
+                  else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlighted(h => Math.max(h - 1, 0)); }
+                  else if (e.key === 'Enter') { e.preventDefault(); addItem(searchResults[highlighted]); }
+                  else if (e.key === 'Escape') setSearchResults([]);
+                }}
               />
               
               {searchResults.length > 0 && (
                 <div className="absolute z-10 w-full bg-white mt-1 rounded-lg shadow-xl border border-slate-200 max-h-60 overflow-auto">
-                  {searchResults.map(p => (
+                  {searchResults.map((p, idx) => (
                     <button 
                       key={p.id}
+                      ref={el => { if (idx === highlighted) el?.scrollIntoView({ block: 'nearest' }); }}
                       onClick={() => addItem(p)}
-                      className="w-full text-left px-4 py-3 hover:bg-slate-50 flex justify-between items-center border-b border-slate-100 last:border-0"
+                      onMouseEnter={() => setHighlighted(idx)}
+                      className={`w-full text-left px-4 py-2.5 flex items-center gap-4 border-b border-slate-100 last:border-0 ${idx === highlighted ? 'bg-primary-light' : 'hover:bg-slate-50'}`}
                     >
-                      <div>
-                        <div className="font-bold text-slate-800">{p.name}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{p.item_code} · {p.barcode}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-800 truncate">{p.name}</div>
+                        <div className="text-[11px] text-slate-500 font-mono">{p.item_code} · {p.barcode}</div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 text-right text-[12px] font-mono shrink-0 w-[260px]">
+                        <div><div className="text-[10px] text-slate-400 font-sans">Stock</div><span className={Number(p.stock_qty) > 0 ? 'text-emerald-700 font-semibold' : 'text-red-600'}>{p.stock_qty != null ? Number(p.stock_qty) : '—'}</span></div>
+                        <div><div className="text-[10px] text-slate-400 font-sans">MRP</div>₹{Number(p.mrp || 0).toFixed(2)}</div>
+                        <div><div className="text-[10px] text-slate-400 font-sans">SP</div>₹{Number(p.selling_price || 0).toFixed(2)}</div>
                       </div>
                       <div className="text-primary"><Plus size={18} /></div>
                     </button>
@@ -429,6 +477,9 @@ const LogisticTransferWizard = () => {
               <thead>
                 <tr>
                   <th>Product Details</th>
+                  <th className="text-right">Stock</th>
+                  <th className="text-right">MRP</th>
+                  <th className="text-right">SP</th>
                   <th>Quantity</th>
                   <th className="w-20">Action</th>
                 </tr>
@@ -440,10 +491,15 @@ const LogisticTransferWizard = () => {
                       <div className="font-bold">{item.name}</div>
                       <div className="text-[10px] text-slate-400 font-mono">{item.item_code}</div>
                     </td>
+                    <td className="text-right font-mono">{item.stock_qty != null ? Number(item.stock_qty) : '—'}</td>
+                    <td className="text-right font-mono">{item.mrp != null ? `₹${Number(item.mrp).toFixed(2)}` : '—'}</td>
+                    <td className="text-right font-mono">{item.selling_price != null ? `₹${Number(item.selling_price).toFixed(2)}` : '—'}</td>
                     <td>
                       <input 
                         type="number" 
                         className="form-input w-24" 
+                        data-qty={item.product_id}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); focusSearch(); } }}
                         value={item.quantity} 
                         onChange={e => {
                           const val = parseFloat(e.target.value);
@@ -460,7 +516,7 @@ const LogisticTransferWizard = () => {
                 ))}
                 {selectedItems.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="text-center py-12 text-slate-400">
+                    <td colSpan={6} className="text-center py-12 text-slate-400">
                       <Package size={48} className="mx-auto mb-4 opacity-20" />
                       No items selected yet.
                     </td>

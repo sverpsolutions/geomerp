@@ -4,6 +4,9 @@ import { products_api, product_detail } from '../../api/products';
 import { audit_api } from '../../api/audit';
 import { useAuthStore } from '../../store/authStore';
 import { toast } from 'react-hot-toast';
+import { getCompanySettings } from '../../api/company';
+import { printTransferOut } from '../../utils/printTransferOut';
+import { lookupSourceTransfers } from '../../api/logistic';
 
 interface BranchInfo {
   id: number;
@@ -26,6 +29,8 @@ const MultiBranchTransfer = () => {
   const user = useAuthStore(s => s.user);
   const [branches, setBranches] = useState<BranchInfo[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<number[]>([]);
+  const [sourceId, setSourceId] = useState<number | null>(null);
+  const targets = branches.filter(b => b.id !== sourceId);
   const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   
   // Search & Scanning State
@@ -40,6 +45,7 @@ const MultiBranchTransfer = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [sessionStatus, setSessionStatus] = useState<'DRAFT' | 'CONFIRMED' | 'NEW'>('NEW');
   const [lastTrfs, setLastTrfs] = useState<string[]>([]);
+  const [lastTrfIds, setLastTrfIds] = useState<number[]>([]);
   
   const barcodeRef = useRef<HTMLInputElement>(null);
   const qtyRef = useRef<HTMLInputElement>(null);
@@ -72,6 +78,8 @@ const MultiBranchTransfer = () => {
     try {
       const data = await inventory_api.getBranches();
       setBranches(data);
+      // default source: user's outlet, else the HO record (no HO flag in outlets, only "(HO)" in the name)
+      setSourceId(prev => prev ?? user?.outlet_id ?? data.find((b: BranchInfo) => /\(HO\)/i.test(b.outlet_name))?.id ?? null);
     } catch (err) {
       toast.error("Failed to load branches");
     }
@@ -199,11 +207,15 @@ const MultiBranchTransfer = () => {
       toast.error("No items to save");
       return;
     }
+    if (!sourceId) {
+      toast.error("Select a source location");
+      return;
+    }
     
     try {
       setIsSaving(true);
       const payload = {
-        from_location_id: user?.outlet_id || 1, // Use logged in user's outlet
+        from_location_id: sourceId,
         remarks,
         branch_ids: selectedBranches,
         items: scannedItems.map(i => ({
@@ -234,6 +246,10 @@ const MultiBranchTransfer = () => {
       toast.error("Select branches and add items before confirming");
       return;
     }
+    if (!sourceId) {
+      toast.error("Select a source location");
+      return;
+    }
 
     if (!window.confirm(`Are you sure you want to generate transfers for ${selectedBranches.length} branches?`)) return;
 
@@ -241,7 +257,7 @@ const MultiBranchTransfer = () => {
       setIsSaving(true);
       // First save draft if new
       const payload = {
-        from_location_id: 1,
+        from_location_id: sourceId,
         remarks,
         branch_ids: selectedBranches,
         items: scannedItems.map(i => ({
@@ -255,18 +271,46 @@ const MultiBranchTransfer = () => {
       const res = await inventory_api.confirmSession(session.id);
       
       setSessionStatus('CONFIRMED');
-      setLastTrfs(res.data);
+      setLastTrfs(res.data || []);
+      setLastTrfIds(res.ids || []);
       toast.success(res.message);
       
       audit_api.log({
         action: 'CONFIRM_TRANSFER',
         module: 'Multi-Branch Transfer',
-        details: `Generated ${res.data.length} transfers from multi-branch session`
+        details: `Generated ${(res.data || []).length} transfers from multi-branch session`
       });
+      printTransfers(res.ids || []);
     } catch (err) {
       toast.error("Confirmation failed");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const [reprintNo, setReprintNo] = useState('');
+  const reprint = async () => {
+    const no = reprintNo.trim().toUpperCase();
+    if (!no) return;
+    try {
+      const hit = (await lookupSourceTransfers(no) as any[]).find(t => t.transfer_no.toUpperCase() === no);
+      if (!hit) return toast.error(`Transfer ${no} not found`);
+      printTransfers([hit.id]);
+    } catch {
+      toast.error('Transfer lookup failed');
+    }
+  };
+
+  const printTransfers = async (ids: number[]) => {
+    if (!ids.length) return;
+    try {
+      const [docs, company] = await Promise.all([
+        Promise.all(ids.map(id => inventory_api.getTransferPrint(id))),
+        getCompanySettings(),
+      ]);
+      printTransferOut(docs, company);
+    } catch {
+      toast.error('Could not load transfer for printing');
     }
   };
 
@@ -292,9 +336,26 @@ const MultiBranchTransfer = () => {
           </div>
           <p className="text-sm text-text-secondary mt-1">Bulk stock replenishment from central warehouse</p>
         </div>
+        <div className="flex items-end gap-6">
+        <div>
+          <label htmlFor="mbt-reprint" className="block text-[10px] uppercase font-bold text-text-muted tracking-widest mb-1">Reprint Transfer</label>
+          <div className="flex gap-2">
+            <input id="mbt-reprint" className="form-input w-44 font-mono" placeholder="TRF-2026-0001"
+              value={reprintNo} onChange={e => setReprintNo(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') reprint(); }} />
+            <button type="button" className="btn btn-secondary" onClick={reprint} aria-label="Reprint transfer">
+              <i className="fas fa-print"></i>
+            </button>
+          </div>
+        </div>
         <div className="text-right">
-          <div className="text-[10px] uppercase font-bold text-text-muted tracking-widest">Source Location</div>
-          <div className="text-sm font-bold text-primary">Main Warehouse <span className="text-text-muted ml-2 font-mono bg-bg-app px-2 py-0.5 rounded border">WH-001</span></div>
+          <label htmlFor="mbt-source" className="block text-[10px] uppercase font-bold text-text-muted tracking-widest mb-1">Source Location</label>
+          <select id="mbt-source" className="form-input min-w-[280px]" value={sourceId ?? ''}
+            onChange={e => { const v = Number(e.target.value) || null; setSourceId(v); setSelectedBranches(sel => sel.filter(id => id !== v)); }}>
+            <option value="">Select source…</option>
+            {branches.map(b => <option key={b.id} value={b.id}>{b.outlet_name}</option>)}
+          </select>
+        </div>
         </div>
       </div>
 
@@ -307,7 +368,7 @@ const MultiBranchTransfer = () => {
         <div className="flex gap-2">
           <button 
             type="button" 
-            onClick={() => setSelectedBranches(branches.map(b => b.id))}
+            onClick={() => setSelectedBranches(targets.map(b => b.id))}
             className="text-[10px] font-bold text-primary hover:underline uppercase"
           >
             Select All
@@ -324,7 +385,7 @@ const MultiBranchTransfer = () => {
       </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {branches.map(branch => {
+          {targets.map(branch => {
             const isSelected = selectedBranches.includes(branch.id);
             return (
               <div 
@@ -610,8 +671,16 @@ const MultiBranchTransfer = () => {
                return (
                  <div key={bid} className="p-3 border border-border rounded-lg bg-bg-app/30">
                     <div className="text-[10px] font-bold text-text-muted">{b?.outlet_name} · {b?.unit_code}</div>
-                    <div className="text-sm font-black text-primary mt-1">
-                      {lastTrfs[i] || `TRF-2026-${String(41 + i).padStart(4, '0')}`}
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <span className="text-sm font-black text-primary">
+                        {lastTrfs[i] || `TRF-2026-${String(41 + i).padStart(4, '0')}`}
+                      </span>
+                      {lastTrfIds[i] && (
+                        <button type="button" onClick={() => printTransfers([lastTrfIds[i]])}
+                          className="btn btn-secondary h-8 px-3 text-[12px]" aria-label={`Print ${lastTrfs[i]}`}>
+                          <i className="fas fa-print"></i> Print
+                        </button>
+                      )}
                     </div>
                  </div>
                );
@@ -654,6 +723,14 @@ const MultiBranchTransfer = () => {
              Save & Generate Transfers
            </button>
            
+           {sessionStatus === 'CONFIRMED' && lastTrfIds.length > 0 && (
+             <button
+               onClick={() => printTransfers(lastTrfIds)}
+               className="px-6 py-3 bg-white border-2 border-primary text-primary font-black rounded-xl transition-all flex items-center gap-2"
+             >
+               <i className="fas fa-print"></i> Print {lastTrfIds.length > 1 ? 'All' : 'Transfer'}
+             </button>
+           )}
            {sessionStatus === 'CONFIRMED' && (
              <button 
                onClick={() => window.location.reload()}

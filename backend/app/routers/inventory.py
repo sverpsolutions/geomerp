@@ -1,16 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 from typing import List
-from datetime import datetime
+from datetime import date, datetime
+from sqlalchemy.orm import aliased
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, current_user_dep
 from app.models.inventory import multi_transfer_session, multi_transfer_session_branch, multi_transfer_session_item
 from app.models.sync import unit_wise_stock_transfer, unit_wise_stock_transfer_item
 from app.models.outlet import outlet
+from app.models.product import product
 from app.schemas.inventory import MultiTransferSessionCreate, MultiTransferSessionOut, BranchChipInfo
-from app.schemas.common import success_response
 
 router = APIRouter(prefix="/inventory/multi-transfer", tags=["inventory"])
 
@@ -61,7 +62,7 @@ async def save_multi_transfer_draft(
             ))
             
         await db.commit()
-        await db.refresh(session, ["branches", "items"])
+        await db.refresh(session)
         
         # Map for response - manually construct to avoid _sa_instance_state serialization issues
         return {
@@ -86,7 +87,8 @@ async def save_multi_transfer_draft(
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Database error: {str(e)}")
 
-@router.post("/confirm/{session_id}", response_model=success_response)
+# no response_model: success_response would strip "data", and the page crashed reading it
+@router.post("/confirm/{session_id}")
 async def confirm_multi_transfer(
     session_id: int,
     current_user: current_user_dep = Depends(get_current_user),
@@ -113,6 +115,10 @@ async def confirm_multi_transfer(
 
     now = datetime.now()
     generated_trfs = []
+    generated_ids = []
+    prices = {r.id: r for r in (await db.execute(
+        select(product.id, product.cost_price, product.mrp).where(product.id.in_({i.product_id for i in items}))
+    )).all()}
 
     # 2. Loop through branches and create TRF records
     for b_link in branches:
@@ -136,19 +142,20 @@ async def confirm_multi_transfer(
         
         # Add items to this TRF
         for s_item in items:
-            # We need cost_price and mrp. For now, using defaults or fetching from product
-            # For brevity in this implementaiton, I'll assume they are available or set to 0
+            p = prices.get(s_item.product_id)
+            cost = (p.cost_price if p else 0) or 0
             db.add(unit_wise_stock_transfer_item(
                 transfer_id=trf.id,
                 product_id=s_item.product_id,
                 qty=s_item.qty_per_branch,
                 unit="PCS",
-                cost_price=0, # Should be fetched from product/batch
-                mrp=0,        # Should be fetched from product/batch
-                total_val=0
+                cost_price=cost,
+                mrp=(p.mrp if p else 0) or 0,
+                total_val=cost * s_item.qty_per_branch,
             ))
             
         generated_trfs.append(trf_no)
+        generated_ids.append(trf.id)
 
     # 3. Mark session as confirmed
     session.status = "CONFIRMED"
@@ -156,5 +163,104 @@ async def confirm_multi_transfer(
     
     return {
         "message": f"Successfully generated {len(generated_trfs)} transfers",
-        "data": generated_trfs
+        "data": generated_trfs,
+        "ids": generated_ids,
+    }
+
+
+@router.get("/transfer/{trf_id}/print")
+async def get_transfer_for_print(
+    trf_id: int,
+    current_user: current_user_dep = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Transfer-out note: header, both locations and item lines with names."""
+    trf = await db.get(unit_wise_stock_transfer, trf_id)
+    if not trf:
+        raise HTTPException(status_code=404, detail="Transfer not found")
+    locs = {o.id: o for o in (await db.execute(
+        select(outlet).where(outlet.id.in_([trf.from_outlet_id, trf.to_outlet_id]))
+    )).scalars().all()}
+    rows = (await db.execute(
+        select(unit_wise_stock_transfer_item, product.name, product.item_code, product.barcode, product.hsn_code)
+        .join(product, unit_wise_stock_transfer_item.product_id == product.id)
+        .where(unit_wise_stock_transfer_item.transfer_id == trf_id)
+        .order_by(unit_wise_stock_transfer_item.id)
+    )).all()
+    loc = lambda o: o and {"name": o.outlet_name, "code": o.unit_code, "address": o.address,
+                           "city": o.city, "state": o.state, "gst_number": o.gst_number}
+    return {
+        "id": trf.id, "transfer_no": trf.transfer_no, "transfer_date": trf.transfer_date,
+        "status": trf.status, "remarks": trf.remarks,
+        "from": loc(locs.get(trf.from_outlet_id)), "to": loc(locs.get(trf.to_outlet_id)),
+        "items": [{"name": n, "item_code": c, "barcode": b, "hsn_code": h, "qty": i.qty, "unit": i.unit,
+                   "cost_price": i.cost_price, "mrp": i.mrp, "total_val": i.total_val}
+                  for i, n, c, b, h in rows],
+    }
+
+
+@router.get("/transfers")
+async def list_stock_transfers(
+    direction: str = Query("out", pattern="^(out|in)$"),
+    location_id: int | None = Query(None, description="OUT = sent from it, IN = received by it; empty = all"),
+    date_from: date | None = None,
+    date_to: date | None = None,
+    status_filter: str | None = Query(None, alias="status"),
+    q: str | None = None,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+    current_user: current_user_dep = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Stock transfer register with per-transfer item count, qty, cost and MRP value."""
+    t, i = unit_wise_stock_transfer, unit_wise_stock_transfer_item
+    frm, to = aliased(outlet), aliased(outlet)
+    agg = (
+        select(i.transfer_id,
+               func.count(i.id).label("item_count"),
+               func.coalesce(func.sum(i.qty), 0).label("total_qty"),
+               func.coalesce(func.sum(i.total_val), 0).label("cost_value"),
+               func.coalesce(func.sum(i.qty * i.mrp), 0).label("mrp_value"))
+        .group_by(i.transfer_id).subquery()
+    )
+    conds = []
+    if location_id:
+        conds.append((t.from_outlet_id if direction == "out" else t.to_outlet_id) == location_id)
+    if date_from:
+        conds.append(t.transfer_date >= date_from)
+    if date_to:
+        conds.append(t.transfer_date <= date_to)
+    if status_filter:
+        conds.append(t.status == status_filter)
+    if q:
+        conds.append(t.transfer_no.ilike(f"%{q.strip()}%"))
+
+    base = (
+        select(t.id, t.transfer_no, t.transfer_date, t.type, t.status, t.remarks,
+               t.from_outlet_id, frm.outlet_name.label("from_name"),
+               t.to_outlet_id, to.outlet_name.label("to_name"),
+               func.coalesce(agg.c.item_count, 0).label("item_count"),
+               func.coalesce(agg.c.total_qty, 0).label("total_qty"),
+               func.coalesce(agg.c.cost_value, 0).label("cost_value"),
+               func.coalesce(agg.c.mrp_value, 0).label("mrp_value"))
+        .outerjoin(agg, agg.c.transfer_id == t.id)
+        .outerjoin(frm, frm.id == t.from_outlet_id)
+        .outerjoin(to, to.id == t.to_outlet_id)
+        .where(*conds)
+    )
+    sub = base.subquery()
+    totals = (await db.execute(select(
+        func.count(), func.coalesce(func.sum(sub.c.total_qty), 0),
+        func.coalesce(func.sum(sub.c.cost_value), 0), func.coalesce(func.sum(sub.c.mrp_value), 0),
+    ).select_from(sub))).one()
+    rows = (await db.execute(
+        base.order_by(t.transfer_date.desc().nullslast(), t.id.desc())
+        .offset((page - 1) * per_page).limit(per_page)
+    )).mappings().all()
+    return {
+        "items": [dict(r) for r in rows],
+        "total": totals[0],
+        "page": page,
+        "per_page": per_page,
+        "totals": {"total_qty": totals[1], "cost_value": totals[2], "mrp_value": totals[3]},
     }

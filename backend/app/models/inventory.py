@@ -17,8 +17,8 @@ class multi_transfer_session(base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    branches: Mapped[list["multi_transfer_session_branch"]] = relationship(back_populates="session", cascade="all, delete-orphan")
-    items: Mapped[list["multi_transfer_session_item"]] = relationship(back_populates="session", cascade="all, delete-orphan")
+    branches: Mapped[list["multi_transfer_session_branch"]] = relationship(back_populates="session", cascade="all, delete-orphan", lazy="selectin")
+    items: Mapped[list["multi_transfer_session_item"]] = relationship(back_populates="session", cascade="all, delete-orphan", lazy="selectin")
 
 class multi_transfer_session_branch(base):
     __tablename__ = "multi_transfer_session_branches"

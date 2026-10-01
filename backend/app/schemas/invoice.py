@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
-from pydantic import BaseModel, field_validator
+from typing import Literal, Optional
+from pydantic import BaseModel, Field, field_validator
 
 
 # ─── Invoice Item ────────────────────────────────────────────────────────────
@@ -76,6 +76,11 @@ class payment_out(BaseModel):
 
 # ─── Invoice Create / Update ─────────────────────────────────────────────────
 
+class split_payment_in(BaseModel):
+    payment_mode: Literal["cash", "card", "upi"]
+    amount: Decimal = Field(gt=0)
+
+
 class invoice_create(BaseModel):
     outlet_id: Optional[int] = None
     customer_id: int
@@ -90,6 +95,8 @@ class invoice_create(BaseModel):
     # optional advance payment at time of invoice save
     paid_amount: Decimal = Decimal("0.00")
     round_off: bool = False  # round grand total to nearest rupee
+    # split payment: when given, replaces payment_mode/paid_amount (one payment row per entry)
+    payments: list[split_payment_in] = []
 
 
 class invoice_update(BaseModel):
@@ -148,6 +155,9 @@ class invoice_list_out(BaseModel):
     payment_mode: str
     status: str
     created_at: datetime
+    outlet_id: Optional[int] = None
+    outlet_name: Optional[str] = None
+    split: list[split_payment_in] = []  # per-mode amounts, only for payment_mode == "split"
 
     model_config = {"from_attributes": True}
 

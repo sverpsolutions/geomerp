@@ -32,7 +32,7 @@ export default function estimate_list_page() {
       const params: Record<string, unknown> = { page, per_page }
       if (status_f) params.status = status_f
       const res = await billing_api.list_estimates(params)
-      set_items(res.data.items)
+      set_items(res.data.data)
       set_total(res.data.total)
     } finally {
       set_loading(false)

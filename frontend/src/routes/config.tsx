@@ -67,6 +67,7 @@ import SystemHelp from '../pages/help/SystemHelp';
 import PortalHub from '../pages/help/PortalHub';
 import ThemeSettings from '../pages/settings/ThemeSettings';
 import MultiBranchTransfer from '../pages/inventory/MultiBranchTransfer';
+import TransferRegister from '../pages/inventory/TransferRegister';
 import SyncMonitor from '../pages/inventory/SyncMonitor';
 import LogisticList from '../pages/logistics/LogisticList';
 import LogisticTransferWizard from '../pages/logistics/LogisticTransferWizard';
@@ -183,9 +184,9 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '910', path: '/settings/theme', component: ThemeSettings, title: 'Theme Settings' },
   { id: '801', path: '/hr/employees', component: EmployeeDirectory, title: 'Employees' },
   { id: '802', path: '/hr/attendance', component: Attendance, title: 'Attendance' },
-  { id: '503', path: '/inventory/transfer/out', component: Inventory, title: 'Stock Transfer OUT' },
-  { id: '505', path: '/inventory/transfer/multi', component: MultiBranchTransfer, title: 'Multi-Branch Transfer Out' },
-  { id: '504', path: '/inventory/transfer/in', component: Inventory, title: 'Stock Transfer IN' },
+  { id: '503', path: '/inventory/transfer/out', component: () => <TransferRegister direction="out" />, title: 'Stock Transfer OUT' },
+  { id: '505', path: '/inventory/transfer/multi', component: MultiBranchTransfer, title: 'New Transfer Out' },
+  { id: '504', path: '/inventory/transfer/in', component: () => <TransferRegister direction="in" />, title: 'Stock Transfer IN' },
   { id: '310', path: '/billing/estimates', component: EstimateList, title: 'Estimates' },
   { id: '311', path: '/billing/estimates/new', component: EstimateCreate, title: 'New Estimate' },
   { id: '810', path: '/hr/payroll', component: () => <div className="p-8">Payroll Module</div>, title: 'Payroll' },

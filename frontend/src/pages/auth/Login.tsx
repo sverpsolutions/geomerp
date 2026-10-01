@@ -51,7 +51,7 @@ export default function LoginPage() {
               <path d="M24 24v16M14 18l10 6 10-6" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
               <defs>
                 <linearGradient id="grad1" x1="0" y1="0" x2="48" y2="48">
-                  <stop stopColor="#6366f1" />
+                  <stop stopColor="#1E8489" />
                   <stop offset="1" stopColor="#8b5cf6" />
                 </linearGradient>
               </defs>
@@ -199,7 +199,7 @@ export default function LoginPage() {
           opacity: 0.45;
           animation: float 20s ease-in-out infinite;
         }
-        .orb-1 { width: 420px; height: 420px; top: -10%; left: -8%;  background: #6366f1; animation-delay: 0s; }
+        .orb-1 { width: 420px; height: 420px; top: -10%; left: -8%;  background: #1E8489; animation-delay: 0s; }
         .orb-2 { width: 350px; height: 350px; bottom: -12%; right: -6%; background: #8b5cf6; animation-delay: -5s; }
         .orb-3 { width: 280px; height: 280px; top: 50%; left: 60%;   background: #a78bfa; animation-delay: -10s; }
         .orb-4 { width: 200px; height: 200px; top: 20%; right: 25%;  background: #c084fc; animation-delay: -15s; opacity: 0.3; }
@@ -351,7 +351,7 @@ export default function LoginPage() {
           font-size: 0.95rem;
           font-weight: 700;
           color: #fff;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, #1E8489, #8b5cf6);
           border: none;
           border-radius: 0.75rem;
           cursor: pointer;

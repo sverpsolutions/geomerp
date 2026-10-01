@@ -1,14 +1,23 @@
 import type { Config } from 'tailwindcss'
 
+// Brand scale (deep teal). Pages use blue-*/indigo-* utilities heavily, so both map here.
+const brand = {
+  50: '#EEF7F7', 100: '#D5ECEC', 200: '#ADD9DA', 300: '#7DC0C2', 400: '#47A2A6',
+  500: '#1E8489', 600: '#0E5C63', 700: '#0A4B51', 800: '#093E43', 900: '#082F33', 950: '#041C1F',
+}
+
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        mono: ['"Roboto Mono"', 'monospace'],
+        sans: ['"IBM Plex Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
       },
       colors: {
+        brand,
+        blue: brand,
+        indigo: brand,
         primary: {
           DEFAULT: 'var(--color-primary)',
           hover: 'var(--color-primary-hover)',
@@ -61,7 +70,7 @@ export default {
         'fiori-badge': ['var(--fs-badge)', { lineHeight: '14px', fontWeight: '500' }],
       },
       borderRadius: {
-        'fiori': '4px',
+        'fiori': '8px',
       },
     },
   },

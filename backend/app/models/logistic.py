@@ -28,10 +28,10 @@ class logistic_transfer(base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    items: Mapped[list["logistic_transfer_item"]] = relationship(back_populates="transfer", cascade="all, delete-orphan")
-    boxes: Mapped[list["logistic_box"]] = relationship(back_populates="transfer", cascade="all, delete-orphan")
-    dispatch_details: Mapped["logistic_dispatch_detail | None"] = relationship(back_populates="transfer", uselist=False, cascade="all, delete-orphan")
-    timeline: Mapped[list["logistic_timeline"]] = relationship(back_populates="transfer", cascade="all, delete-orphan")
+    items: Mapped[list["logistic_transfer_item"]] = relationship(back_populates="transfer", cascade="all, delete-orphan", lazy="selectin")
+    boxes: Mapped[list["logistic_box"]] = relationship(back_populates="transfer", cascade="all, delete-orphan", lazy="selectin")
+    dispatch_details: Mapped["logistic_dispatch_detail | None"] = relationship(back_populates="transfer", uselist=False, cascade="all, delete-orphan", lazy="selectin")
+    timeline: Mapped[list["logistic_timeline"]] = relationship(back_populates="transfer", cascade="all, delete-orphan", lazy="selectin")
 
 class logistic_transfer_item(base):
     __tablename__ = "logistic_transfer_items"
@@ -42,6 +42,15 @@ class logistic_transfer_item(base):
     quantity: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False)
     
     transfer: Mapped["logistic_transfer"] = relationship(back_populates="items")
+    product: Mapped["product"] = relationship(lazy="selectin")
+
+    @property
+    def name(self) -> str | None:
+        return self.product.name if self.product else None
+
+    @property
+    def item_code(self) -> str | None:
+        return self.product.item_code if self.product else None
 
 class logistic_box(base):
     __tablename__ = "logistic_boxes"
@@ -59,7 +68,7 @@ class logistic_box(base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     transfer: Mapped["logistic_transfer"] = relationship(back_populates="boxes")
-    items: Mapped[list["logistic_box_item"]] = relationship(back_populates="box", cascade="all, delete-orphan")
+    items: Mapped[list["logistic_box_item"]] = relationship(back_populates="box", cascade="all, delete-orphan", lazy="selectin")
 
 class logistic_box_item(base):
     __tablename__ = "logistic_box_items"

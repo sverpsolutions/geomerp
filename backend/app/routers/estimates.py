@@ -36,8 +36,8 @@ async def list_estimates(
 ):
     items, total = await billing_service.list_estimates(db, customer_id, status, page, per_page)
     return paginated_response[estimate_list_out](
-        items=[estimate_list_out.model_validate(i) for i in items],
-        total=total, page=page, per_page=per_page,
+        data=[estimate_list_out.model_validate(i) for i in items],
+        total=total, page=page, per_page=per_page, total_pages=-(-total // per_page),
     )
 
 

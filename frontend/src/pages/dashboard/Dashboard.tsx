@@ -171,7 +171,7 @@ const Dashboard = () => {
       {/* ── KPI row 1 ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label="Today's Sales" value={`₹${stats.today_sales.toLocaleString()}`}
-          sub={`${stats.today_invoice_count} invoices today`} icon="fas fa-rupee-sign" color="#2563EB" trend={4.2} />
+          sub={`${stats.today_invoice_count} invoices today`} icon="fas fa-rupee-sign" color="#0E5C63" trend={4.2} />
         <KpiCard label="Month Sales" value={`₹${(stats.month_sales / 100000).toFixed(1)}L`}
           sub="May 2026" icon="fas fa-chart-line" color="#16A34A" trend={8.1} />
         <KpiCard label="Month Profit" value={`₹${(stats.month_profit / 100000).toFixed(1)}L`}
@@ -207,8 +207,8 @@ const Dashboard = () => {
                 datasets: [{
                   label: 'Sales (₹)',
                   data: stats.daily_sales.data,
-                  backgroundColor: 'rgba(37,99,235,0.55)',
-                  borderColor: '#2563EB',
+                  backgroundColor: '#7DC0C2',
+                  borderColor: '#0E5C63',
                   borderWidth: 1,
                   borderRadius: 5,
                 }],
@@ -235,11 +235,11 @@ const Dashboard = () => {
                   label: 'Monthly (₹)',
                   data: stats.monthly_sales.data,
                   fill: true,
-                  backgroundColor: 'rgba(22,163,74,0.1)',
-                  borderColor: '#16A34A',
+                  backgroundColor: 'rgba(14,92,99,0.08)',
+                  borderColor: '#0E5C63',
                   tension: 0.35,
                   pointRadius: 4,
-                  pointBackgroundColor: '#16A34A',
+                  pointBackgroundColor: '#0E5C63',
                 }],
               }}
               options={{
@@ -275,7 +275,7 @@ const Dashboard = () => {
                   <tr key={idx}>
                     <td>
                       <span className="w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-bold text-white"
-                        style={{ background: ['#2563EB','#16A34A','#D97706'][idx] || '#64748B' }}>
+                        style={{ background: ['#0E5C63','#16A34A','#D97706'][idx] || '#64748B' }}>
                         {idx + 1}
                       </span>
                     </td>

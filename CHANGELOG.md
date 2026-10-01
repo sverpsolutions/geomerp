@@ -2,6 +2,28 @@
 
 Versions follow `MAJOR.MINOR.PATCH`. New work lands on the `testing` branch as `-beta.N` tags; once verified it is merged to `main` and tagged without the suffix.
 
+## v1.3.0 — 2026-10-01 (main)
+
+Stable release of everything from v1.1.0-beta.1 to v1.3.0-beta.2.
+
+## v1.3.0-beta.2 — 2026-10-01 (testing) — redesign, stock transfers, logistics fixes
+
+### Changed
+- **New look**: deep-teal brand, IBM Plex Sans/Mono, dark navy sidebar, taller header, rounded tabs, light table headers, 40px controls. Tailwind `blue-*`/`indigo-*` now map to the brand scale so every page follows; yellow admin theme removed.
+- **Inventory → Stock Transfer OUT / IN** are real registers (were mock-up pages): location (default HO), date, status and number filters; summary of transfers, qty, cost value, MRP value; expand a row for item lines with subtotal; print per transfer. **New Transfer Out** opens the create screen.
+- **New Transfer Out** (multi-branch): real Source Location picker (was hard-coded location 1); lines get cost/MRP/value from the item master (were 0); A4 **Stock Transfer Out** note prints after confirm, per card, Print All, or by number (Reprint).
+- **Logistics → New Transfer**: item search shows stock at source, MRP and SP; ↑/↓/Enter; scanner Enter adds the item and jumps to its Qty, Enter in Qty returns to scan.
+- Product search accepts `outlet_id` and returns `stock_qty` there.
+- Item photo boxes show the recommended size (800 × 800 px, square, ≤ 200 KB).
+- POS: split payment (several payment rows per invoice), outlet tagged on the bill.
+
+### Fixed
+- Shipment list 500, create transfer 500 (after save), list/detail 500 once a transfer existed: async lazy-loads on logistic transfer relationships.
+- Next Step on step 1 created a duplicate transfer every time; reopened drafts start at step 2.
+- Create box / dispatch details rejected empty L/W/H and ETA.
+- Multi-branch Save Draft crashed (lazy-load); Confirm response dropped the transfer numbers and blanked the page.
+- Migration `e1f4a7b2c9d0`: columns the models write but the DB lacked (`logistic_transfers.source_transfer_id`, stock transfer type/remarks/unit/cost/mrp/value, PO vendor invoice fields, item packaging UOM/shelf-life/storage fields).
+
 ## v1.3.0-beta.1 — 2026-10-01 (testing) — POS billing (NCG v2 style)
 
 ### Changed
