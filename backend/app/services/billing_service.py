@@ -223,6 +223,10 @@ async def create_invoice(
         items_data.append({**item_in.__dict__, **calc})
 
     totals = _calc_invoice_totals(items_data, data.cd_percent)
+    if data.round_off:
+        rounded = totals["total_amount"].quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        totals["round_off"] = rounded - totals["total_amount"]
+        totals["total_amount"] = rounded
 
     paid = data.paid_amount
     due  = _two(totals["total_amount"] - paid)

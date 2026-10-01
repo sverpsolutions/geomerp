@@ -61,6 +61,7 @@ export interface invoice_out {
   total_gst: number
   cd_percent: number
   cd_amount: number
+  round_off?: number
   total_amount: number
   paid_amount: number
   due_amount: number
@@ -99,6 +100,7 @@ export interface invoice_create {
   notes?: string
   items: invoice_item_in[]
   paid_amount?: number
+  round_off?: boolean
 }
 
 export interface estimate_item_in {

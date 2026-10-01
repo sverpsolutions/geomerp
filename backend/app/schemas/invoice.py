@@ -89,6 +89,7 @@ class invoice_create(BaseModel):
     items: list[invoice_item_in]
     # optional advance payment at time of invoice save
     paid_amount: Decimal = Decimal("0.00")
+    round_off: bool = False  # round grand total to nearest rupee
 
 
 class invoice_update(BaseModel):
@@ -119,6 +120,7 @@ class invoice_out(BaseModel):
     total_gst: Decimal
     cd_percent: Decimal
     cd_amount: Decimal
+    round_off: Decimal = Decimal("0")
     total_amount: Decimal
     paid_amount: Decimal
     due_amount: Decimal

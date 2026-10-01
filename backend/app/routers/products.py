@@ -51,6 +51,7 @@ async def search_products(
             product_model.selling_price,
             product_model.mrp,
             product_model.gst_percent,
+            product_model.hsn_code,
         )
         .where(product_model.is_active == True)
         .where(
@@ -69,6 +70,7 @@ async def search_products(
             "barcode": r.barcode,
             "barcode_crt": r.barcode_crt,
             "unit": r.unit,
+            "hsn_code": r.hsn_code,
             "selling_price": str(r.selling_price),
             "mrp": str(r.mrp),
             "gst_percent": str(r.gst_percent),

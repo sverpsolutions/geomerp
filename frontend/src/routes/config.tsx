@@ -8,7 +8,7 @@ import ImportProducts from '../pages/products/ImportProducts';
 import Suppliers from '../pages/masters/Suppliers';
 import VendorApprovals from '../pages/suppliers/VendorApprovals';
 import HsnMaster from '../pages/masters/HsnMaster';
-import Billing from '../pages/billing/Billing';
+import PosBilling from '../pages/billing/PosBilling';
 import InvoiceList from '../pages/billing/InvoiceList';
 import InvoiceCreate from '../pages/billing/InvoiceCreate';
 import InvoiceView from '../pages/billing/InvoiceView';
@@ -136,7 +136,7 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '226', path: '/masters/warehouse-racking', component: WarehouseRacking, title: 'Warehouse Racking' },
   { id: '227', path: '/masters/channels', component: ChannelPartners, title: 'Channel Partners' },
   { id: '901', path: '/settings/company', component: CompanySettings, title: 'Company Settings' },
-  { id: '301', path: '/billing/create', component: Billing, title: 'New Invoice' },
+  { id: '301', path: '/billing/create', component: PosBilling, title: 'New Invoice' },
   { id: '302', path: '/billing/invoices', component: InvoiceList, title: 'Sales Invoices' },
   { id: '303', path: '/billing/invoices/:id', component: InvoiceView, title: 'Invoice Details' },
   { id: '304', path: '/billing/invoices/new', component: InvoiceCreate, title: 'New Invoice Form' },

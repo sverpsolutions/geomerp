@@ -12,7 +12,6 @@ import VendorApprovals from './pages/suppliers/VendorApprovals';
 import VendorRegistration from './pages/suppliers/VendorRegistration';
 import VendorPortal from './pages/suppliers/VendorPortal';
 import HsnMaster from './pages/masters/HsnMaster';
-import Billing from './pages/billing/Billing';
 import InvoiceList from './pages/billing/InvoiceList';
 import InvoiceCreate from './pages/billing/InvoiceCreate';
 import InvoiceView from './pages/billing/InvoiceView';
@@ -171,8 +170,6 @@ const App = () => {
             <Route path="billing/invoices/new" element={<InvoiceCreate />} />
             <Route path="billing/estimates" element={<EstimateList />} />
             <Route path="billing/estimates/new" element={<EstimateCreate />} />
-            <Route path="billing/create" element={<Billing />} />
-            <Route path="billing/*" element={<Billing />} />
             <Route path="estimates/*" element={<Estimates />} />
             
             {/* Purchases & Inventory */}

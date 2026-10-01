@@ -2,6 +2,20 @@
 
 Versions follow `MAJOR.MINOR.PATCH`. New work lands on the `testing` branch as `-beta.N` tags; once verified it is merged to `main` and tagged without the suffix.
 
+## v1.3.0-beta.1 — 2026-10-01 (testing) — POS billing (NCG v2 style)
+
+### Changed
+- **Billing → New Invoice** is a new POS screen modelled on NCG `billing/create_v2.php` (POS beta): navy top bar (invoice/cashier/clock), customer phone/name search, Retail/Wholesale, date, **Search & Scan** (barcode/item code exact match adds instantly; word search dropdown with ↑/↓/Enter; same item again = qty + 1), dense items grid (Qty, MRP struck through, Disc%, Rate, EAN, GST%, Total), fixed totals footer (Items, Qty, MRP Total, You Save, Grand Total, **Pay & Save F4**), shortcut bar F1 Search · F2 Qty · F3 Price Check · F4 Pay · F5 Hold · F6 Recall · F7 Reprint · F8 Price · F11 Fullscreen, and a two-column Pay & Save dialog ([Cash] [Card] [UPI] [Credit], CD %, round off, cash received → change).
+- Prices are GST-inclusive shelf prices (`selling_price` = MRP); sent to the API as GST-exclusive rates; new `round_off` flag on invoice create keeps the bill total equal to the shelf total.
+- After save: 80 mm thermal receipt, port of NCG `billing/print.php` (thermal-3in): MRP / S.D per line, You Saved, cash tendered / change, GST summary, PAID stamp.
+
+### Removed
+- Old `Billing.tsx` "New Invoice" page — it used hard-coded mock products/customers and never saved.
+
+### Notes
+- Held bills (F5) are kept per counter in the browser.
+- Split payment is not offered: the invoice API records one payment mode per bill.
+
 ## v1.2.0-beta.2 — 2026-10-01 (testing) — Purchase Return Phase 2
 
 ### Added

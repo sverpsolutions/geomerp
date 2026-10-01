@@ -89,6 +89,9 @@ export interface product_search_item {
   unit: string
   selling_price: string
   mrp: string
+  barcode_crt?: string | null
+  gst_percent?: string
+  hsn_code?: string | null
 }
 
 export const products_api = {
