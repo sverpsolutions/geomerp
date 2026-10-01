@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import React, { useState } from 'react';
 
 const Customers = () => {
@@ -30,9 +31,7 @@ const Customers = () => {
   };
 
   const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.phone.includes(searchQuery) ||
-    c.gstin.toLowerCase().includes(searchQuery.toLowerCase())
+    matchesSearch(searchQuery, c.name, c.phone, c.gstin)
   );
 
   return (

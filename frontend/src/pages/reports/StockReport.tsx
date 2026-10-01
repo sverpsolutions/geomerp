@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import ExcelJS from 'exceljs';
@@ -125,7 +126,7 @@ const StockReport = () => {
     const [open, setOpen] = useState(false);
     const [searchQ, setSearchQ] = useState('');
     
-    const filteredOptions = options?.filter((o: any) => o.name?.toLowerCase().includes(searchQ.toLowerCase())) || [];
+    const filteredOptions = options?.filter((o: any) => matchesSearch(searchQ, o.name)) || [];
 
     return (
       <div className={cn("relative", className)}>

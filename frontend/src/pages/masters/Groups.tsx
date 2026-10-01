@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import { useEffect, useState } from 'react'
 import { masters_api, type item_group_type } from '../../api/masters'
 import PageHeader from '../../components/ui/PageHeader'
@@ -30,8 +31,7 @@ export default function ItemGroupsPage({ searchQuery = '', onCountUpdate }: { se
   useEffect(() => { load() }, [])
 
   const filtered_items = items.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    item.code?.toLowerCase().includes(searchQuery.toLowerCase())
+    matchesSearch(searchQuery, item.name, item.code)
   )
 
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import { useEffect, useRef, useState } from 'react'
 import {
   suppliers_api,
@@ -190,12 +191,7 @@ export default function VendorApprovals() {
     let result = items
     if (filterStatus !== 'all') result = result.filter(i => i.registration_status === filterStatus)
     if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter(i =>
-        i.name.toLowerCase().includes(q) ||
-        i.phone.includes(q) ||
-        (i.gst_number || '').toLowerCase().includes(q)
-      )
+      result = result.filter(i => matchesSearch(search, i.name, i.phone, i.gst_number))
     }
     setFilteredItems(result)
   }, [items, filterStatus, search])

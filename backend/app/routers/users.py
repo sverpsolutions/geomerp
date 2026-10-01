@@ -9,6 +9,7 @@ from app.models.user import user as user_model
 from app.schemas.user import user_create, user_list_out, user_update, user_password_change
 from app.schemas.common import paginated_response, success_response
 from app.services.auth_service import write_audit
+from app.utils.search import word_match
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -23,9 +24,7 @@ async def list_users(
 ):
     q = select(user_model)
     if search:
-        q = q.where(
-            user_model.name.ilike(f"%{search}%") | user_model.username.ilike(f"%{search}%")
-        )
+        q = q.where(word_match(search, user_model.name, user_model.username))
 
     total_result = await db.execute(select(func.count()).select_from(q.subquery()))
     total = total_result.scalar_one()

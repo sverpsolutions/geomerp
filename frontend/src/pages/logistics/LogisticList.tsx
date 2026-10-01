@@ -7,6 +7,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { getLogisticTransfers } from '../../api/logistic';
 import { masters_api } from '../../api/masters';
+import { matchesSearch } from '../../utils/search';
 
 const LogisticList = () => {
   const navigate = useNavigate();
@@ -51,8 +52,7 @@ const LogisticList = () => {
   };
 
   const filtered = transfers.filter(t => 
-    t.transfer_number.toLowerCase().includes(search.toLowerCase()) ||
-    getOutletName(t.destination_location_id).toLowerCase().includes(search.toLowerCase())
+    matchesSearch(search, t.transfer_number, getOutletName(t.destination_location_id))
   );
 
   return (

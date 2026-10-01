@@ -2,6 +2,14 @@
 
 Versions follow `MAJOR.MINOR.PATCH`. New work lands on the `testing` branch as `-beta.N` tags; once verified it is merged to `main` and tagged without the suffix.
 
+## v1.1.0-beta.2 — 2026-10-01 (testing)
+
+### Changed
+- All searches are word-based: every word must match, in any order ("maggi noodles" finds "MAGGI ATTA NOODLES"). One helper each side — `backend/app/utils/search.py` (`word_match`, `word_match_sql`) and `frontend/src/utils/search.ts` (`matchesSearch`) — used by products, shop, customers, suppliers, users, states, HSN, stock & channel reports, billing product picker, all masters pages, vendor pages, logistics list, command palette, help.
+
+### Fixed
+- HSN master search was ignored unless a code type was also selected.
+
 ## v1.1.0-beta.1 — 2026-10-01 (testing)
 
 ### Security

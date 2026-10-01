@@ -25,6 +25,7 @@ from app.schemas.party import (
 )
 from app.schemas.common import paginated_response, success_response
 from app.services.auth_service import write_audit
+from app.utils.search import word_match
 
 router = APIRouter(prefix="/suppliers", tags=["suppliers"])
 
@@ -95,12 +96,8 @@ async def list_suppliers(
         q = q.where(supplier_model.registration_status == registration_status)
 
     if search:
-        q = q.where(
-            supplier_model.name.ilike(f"%{search}%") |
-            supplier_model.phone.ilike(f"%{search}%") |
-            supplier_model.gst_number.ilike(f"%{search}%") |
-            supplier_model.supplier_code.ilike(f"%{search}%")
-        )
+        q = q.where(word_match(search, supplier_model.name, supplier_model.phone,
+                               supplier_model.gst_number, supplier_model.supplier_code))
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
     rows = (await db.execute(
         q.order_by(supplier_model.name).offset((page - 1) * per_page).limit(per_page)

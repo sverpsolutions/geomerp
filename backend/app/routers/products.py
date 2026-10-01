@@ -19,6 +19,7 @@ from app.services.product_service import (
 from app.services.auth_service import write_audit
 
 from app.models.packaging import item_packaging_master
+from app.utils.search import word_match
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -53,10 +54,7 @@ async def search_products(
         )
         .where(product_model.is_active == True)
         .where(
-            product_model.name.ilike(f"%{q}%") |
-            product_model.item_code.ilike(f"%{q}%") |
-            product_model.barcode.ilike(f"%{q}%") |
-            product_model.barcode_crt.ilike(f"%{q}%") |
+            word_match(q, product_model.name, product_model.item_code, product_model.barcode, product_model.barcode_crt) |
             product_model.id.in_(barcode_sub)
         )
         .order_by(product_model.name)
@@ -101,12 +99,8 @@ async def list_products(
     # Build product-level WHERE conditions (no join needed for count)
     product_conditions = []
     if search:
-        product_conditions.append(
-            product_model.name.ilike(f"%{search}%") |
-            product_model.item_code.ilike(f"%{search}%") |
-            product_model.barcode.ilike(f"%{search}%") |
-            product_model.filter_combination_name.ilike(f"%{search}%")
-        )
+        product_conditions.append(word_match(search, product_model.name, product_model.item_code,
+                                             product_model.barcode, product_model.filter_combination_name))
     if category_id:
         product_conditions.append(product_model.category_id == category_id)
     if brand_id:

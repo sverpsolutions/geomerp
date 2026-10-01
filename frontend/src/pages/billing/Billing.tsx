@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
+import { matchesSearch } from '../../utils/search';
 
 interface CartItem {
   product_id: string;
@@ -167,7 +168,7 @@ const Billing = () => {
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     if (e.target.value.length > 0) {
-                      setSearchResults(products.filter(p => p.name.toLowerCase().includes(e.target.value.toLowerCase())));
+                      setSearchResults(products.filter(p => matchesSearch(e.target.value, p.name)));
                     } else {
                       setSearchResults([]);
                     }

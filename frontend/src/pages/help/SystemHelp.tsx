@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { APP_ROUTES } from '../../routes/config';
 import { useTabStore } from '../../store/tabStore';
+import { matchesSearch } from '../../utils/search';
 
 export default function SystemHelp() {
   const [search, setSearch] = useState('');
   const addTab = useTabStore(s => s.addTab);
 
   const filteredRoutes = APP_ROUTES.filter(r => 
-    r.title.toLowerCase().includes(search.toLowerCase()) || 
+    matchesSearch(search, r.title) || 
     r.id.includes(search)
   ).sort((a, b) => a.id.localeCompare(b.id));
 

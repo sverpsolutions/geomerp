@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import { useEffect, useState } from 'react'
 import { masters_api, type gst_type } from '../../api/masters'
 import PageHeader from '../../components/ui/PageHeader'
@@ -21,8 +22,7 @@ export default function gst_master_page({ searchQuery = '', onCountUpdate }: { s
   useEffect(() => { load() }, [])
 
   const filtered_items = items.filter(item => 
-    item.tax_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    item.gst_percent.toString().includes(searchQuery.toLowerCase())
+    matchesSearch(searchQuery, item.tax_name, item.gst_percent)
   )
 
   useEffect(() => {

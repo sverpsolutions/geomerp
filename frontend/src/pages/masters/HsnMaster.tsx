@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import { useEffect, useState } from 'react'
 import { masters_api, type hsn_type } from '../../api/masters'
 import PageHeader from '../../components/ui/PageHeader'
@@ -34,9 +35,8 @@ export default function HsnMaster({ searchQuery = '', onCountUpdate }: { searchQ
 
   const filtered_items = items.filter(item => {
     const matchesType = filterType === 'ALL' || item.code_type?.toUpperCase() === filterType
-    const matchesSearch = item.hsn_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesType && matchesSearch
+    const searchOk = matchesSearch(searchQuery, item.hsn_code, item.description)
+    return matchesType && searchOk
   })
 
   useEffect(() => {

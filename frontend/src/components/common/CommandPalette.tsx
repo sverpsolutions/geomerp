@@ -4,6 +4,7 @@ import { Search, Command, ArrowRight, CornerDownLeft, Sparkles } from 'lucide-re
 import { APP_ROUTES, RouteConfig } from '../../routes/config';
 import { useTabStore } from '../../store/tabStore';
 import { audit_api } from '../../api/audit';
+import { matchesSearch } from '../../utils/search';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -21,8 +22,8 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
   // Filter routes based on search
   const filteredRoutes = APP_ROUTES.filter((route) => {
     if (!route.title || !route.path) return false;
-    const titleMatch = route.title.toLowerCase().includes(search.toLowerCase());
-    const pathMatch = route.path.toLowerCase().includes(search.toLowerCase());
+    const titleMatch = matchesSearch(search, route.title);
+    const pathMatch = matchesSearch(search, route.path);
     const idMatch = route.id.includes(search);
     return titleMatch || pathMatch || idMatch;
   }).slice(0, 8); // limit results for speed and design

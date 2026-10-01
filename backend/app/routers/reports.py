@@ -12,6 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.utils.search import word_match_sql
 
 router = APIRouter(prefix="/reports", tags=["reports"], dependencies=[Depends(get_current_user)])
 
@@ -735,8 +736,9 @@ async def stock_ledger_report(
         where += " AND os.outlet_id = :oid"
         params["oid"] = outlet_id
     if search:
-        where += " AND (LOWER(p.item_code) LIKE :s OR LOWER(p.name) LIKE :s)"
-        params["s"] = f"%{search.lower()}%"
+        sql, sp = word_match_sql(search, ["p.item_code", "p.name"])
+        where += f" AND {sql}"
+        params.update(sp)
 
     rowq = await db.execute(text(f"""
         SELECT
@@ -1162,8 +1164,9 @@ async def channel_pricing_grid(
         pwhere += " AND p.category_id = :cid"
         pparams["cid"] = category_id
     if search:
-        pwhere += " AND (p.name ILIKE :s OR p.item_code ILIKE :s)"
-        pparams["s"] = f"%{search}%"
+        sql, sp = word_match_sql(search, ["p.name", "p.item_code"])
+        pwhere += f" AND {sql}"
+        pparams.update(sp)
 
     # Products
     prodq = await db.execute(text(f"""

@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import { useEffect, useState } from 'react'
 import { masters_api, type brand_type, type item_subcategory_type, type manufacturer_type } from '../../api/masters'
 import PageHeader from '../../components/ui/PageHeader'
@@ -38,9 +39,7 @@ export default function brands_page({ searchQuery = '', onCountUpdate }: { searc
   useEffect(() => { load() }, [])
 
   const filtered_items = items.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    item.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.subcategory_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    matchesSearch(searchQuery, item.name, item.code, item.subcategory_name)
   )
 
   useEffect(() => {

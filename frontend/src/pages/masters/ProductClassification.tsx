@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import { useEffect, useState } from 'react'
 import { masters_api, type product_classification_type } from '../../api/masters'
 import PageHeader from '../../components/ui/PageHeader'
@@ -23,8 +24,7 @@ export default function ProductClassification({ searchQuery = '', onCountUpdate 
   useEffect(() => { load() }, [])
 
   const filtered_items = items.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    item.meaning?.toLowerCase().includes(searchQuery.toLowerCase())
+    matchesSearch(searchQuery, item.name, item.meaning)
   )
 
   useEffect(() => {

@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, current_user_dep
 from app.models.state import state_master
+from app.utils.search import word_match
 from app.utils.gst_validators import (
     validate_gstin, extract_pan_from_gstin, extract_state_code_from_gstin,
     validate_pan, validate_cin, get_state_name, STATE_CODE_MAP
@@ -64,7 +65,7 @@ async def list_states(
     """Get all active Indian states for dropdowns."""
     q = select(state_master).where(state_master.is_active == True).order_by(state_master.state_code)
     if search:
-        q = q.where(state_master.state_name.ilike(f"%{search}%"))
+        q = q.where(word_match(search, state_master.state_name))
     rows = (await db.execute(q)).scalars().all()
     return rows
 

@@ -13,6 +13,7 @@ from app.schemas.shop import (
     ShopOrderDetailOut, ShopOrderItemOut, ShopDashboardStats
 )
 from app.schemas.common import paginated_response
+from app.utils.search import word_match
 import math
 import random
 import string
@@ -41,10 +42,7 @@ async def list_shop_products(
     conditions = [product_model.is_active == True, product_model.is_sellable == True]
     if category_id: conditions.append(product_model.category_id == category_id)
     if search:
-        conditions.append(or_(
-            product_model.name.ilike(f"%{search}%"),
-            product_model.item_code.ilike(f"%{search}%")
-        ))
+        conditions.append(word_match(search, product_model.name, product_model.item_code))
     count_stmt = select(func.count(product_model.id)).where(*conditions)
     total = (await db.execute(count_stmt)).scalar_one()
     stmt = select(product_model).where(*conditions).order_by(product_model.name).offset((page - 1) * per_page).limit(per_page)
@@ -101,12 +99,7 @@ async def create_or_get_customer(body: ShopCustomerCreate, db: AsyncSession = De
 @router.get("/customers/search", dependencies=[Depends(get_current_user)])
 async def search_customers(q: str = Query("", min_length=2), db: AsyncSession = Depends(get_db)):
     """Search customers by name or phone."""
-    stmt = select(shop_customer).where(
-        or_(
-            shop_customer.name.ilike(f"%{q}%"),
-            shop_customer.phone.ilike(f"%{q}%")
-        )
-    ).limit(10)
+    stmt = select(shop_customer).where(word_match(q, shop_customer.name, shop_customer.phone)).limit(10)
     rows = (await db.execute(stmt)).scalars().all()
     return [{"id": r.id, "name": r.name, "phone": r.phone, "address": r.address, "city": r.city} for r in rows]
 
@@ -403,11 +396,7 @@ async def list_all_customers(
     """List all shop customers for admin panel."""
     conditions = []
     if search:
-        conditions.append(or_(
-            shop_customer.name.ilike(f"%{search}%"),
-            shop_customer.phone.ilike(f"%{search}%"),
-            shop_customer.email.ilike(f"%{search}%") if search else True
-        ))
+        conditions.append(word_match(search, shop_customer.name, shop_customer.phone, shop_customer.email))
     
     count_stmt = select(func.count(shop_customer.id))
     if conditions:

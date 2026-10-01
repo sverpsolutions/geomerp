@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import { useEffect, useState } from 'react'
 import { masters_api, type unit_type } from '../../api/masters'
 import PageHeader from '../../components/ui/PageHeader'
@@ -21,8 +22,7 @@ export default function units_page({ searchQuery = '', onCountUpdate }: { search
   useEffect(() => { load() }, [])
 
   const filtered_items = items.filter(item => 
-    item.unit_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    item.unit_code.toLowerCase().includes(searchQuery.toLowerCase())
+    matchesSearch(searchQuery, item.unit_name, item.unit_code)
   )
 
   useEffect(() => {

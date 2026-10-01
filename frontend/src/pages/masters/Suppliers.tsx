@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import { useEffect, useState, useRef } from 'react'
 import { suppliers_api, states_api, type supplier_list_item, type supplier_detail, type state_item, type supplier_gstin_item } from '../../api/suppliers'
 import PageHeader from '../../components/ui/PageHeader'
@@ -279,8 +280,7 @@ export default function SuppliersPage({ searchQuery = '', onCountUpdate }: { sea
   const mappedBrandIds = new Set((form.brands || []).map((b: any) => b.brand_id ?? b))
   const brandSuggestions = brandSearch.trim()
     ? availableBrands.filter(b => !mappedBrandIds.has(b.id) &&
-        (b.name.toLowerCase().includes(brandSearch.toLowerCase()) ||
-         (b.code || '').toLowerCase().includes(brandSearch.toLowerCase()))).slice(0, 15)
+        matchesSearch(brandSearch, b.name, b.code)).slice(0, 15)
     : []
 
   function addBrand(b: any) {
@@ -437,7 +437,7 @@ export default function SuppliersPage({ searchQuery = '', onCountUpdate }: { sea
 
   // ── List View ────────────────────────────────────────────────────────────────
   if (view === 'list') {
-    const filtered = items.filter(s => s?.name?.toLowerCase().includes((searchQuery || '').toLowerCase()))
+    const filtered = items.filter(s => matchesSearch(searchQuery, s?.name))
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">

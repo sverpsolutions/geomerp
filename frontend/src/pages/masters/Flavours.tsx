@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import { useEffect, useState } from 'react'
 import { masters_api, type flavour_type } from '../../api/masters'
 import PageHeader from '../../components/ui/PageHeader'
@@ -23,8 +24,7 @@ export default function Flavours({ searchQuery = '', onCountUpdate }: { searchQu
   useEffect(() => { load() }, [])
 
   const filtered_items = items.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    item.code?.toLowerCase().includes(searchQuery.toLowerCase())
+    matchesSearch(searchQuery, item.name, item.code)
   )
 
   useEffect(() => {

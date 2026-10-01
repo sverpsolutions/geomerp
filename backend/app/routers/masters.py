@@ -33,6 +33,7 @@ from app.schemas.product import (
 )
 from app.schemas.common import success_response, paginated_response
 from app.services.auth_service import write_audit
+from app.utils.search import word_match
 
 router = APIRouter(prefix="/masters", tags=["masters"])
 
@@ -544,11 +545,7 @@ async def list_hsn(
     q = select(hsn_master).where(hsn_master.is_active == True)
     if code_type:
         q = q.where(hsn_master.code_type.ilike(code_type))
-        q = q.where(
-            hsn_master.hsn_code.ilike(f"%{search}%") |
-            hsn_master.description.ilike(f"%{search}%") |
-            hsn_master.category_type.ilike(f"%{search}%")
-        )
+    q = q.where(word_match(search, hsn_master.hsn_code, hsn_master.description, hsn_master.category_type))
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
     result = await db.execute(q.offset((page - 1) * per_page).limit(per_page))
     rows = result.scalars().all()

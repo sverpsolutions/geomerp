@@ -134,8 +134,9 @@ async def stock_summary_report(
         where_clauses.append("os.stock_qty = 0")
 
     if search:
-        where_clauses.append("(LOWER(p.name) LIKE :search OR LOWER(p.item_code) LIKE :search OR LOWER(p.barcode) LIKE :search)")
-        params["search"] = f"%{search.lower()}%"
+        sql, sp = word_match_sql(search, ["p.name", "p.item_code", "p.barcode"])
+        where_clauses.append(sql)
+        params.update(sp)
 
     where = " AND ".join(where_clauses) if where_clauses else "1=1"
 
@@ -311,8 +312,9 @@ async def stock_detail_report(
         params["pid"] = product_id
 
     if search:
-        where_clauses.append("(LOWER(p.name) LIKE :search OR LOWER(p.item_code) LIKE :search)")
-        params["search"] = f"%{search.lower()}%"
+        sql, sp = word_match_sql(search, ["p.name", "p.item_code"])
+        where_clauses.append(sql)
+        params.update(sp)
 
     where = " AND ".join(where_clauses)
 
@@ -394,6 +396,7 @@ import subprocess
 from datetime import datetime
 from sqlalchemy.engine import make_url
 from app.core.config import get_settings
+from app.utils.search import word_match_sql
 
 @router.post("/email", dependencies=[Depends(get_current_user)])
 async def email_report(request: Request):

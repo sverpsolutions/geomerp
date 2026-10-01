@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import { useState, useRef, useCallback } from 'react'
 import {
   Building2, FileText, Users, Upload, ChevronRight, ChevronLeft,
@@ -381,8 +382,7 @@ export default function VendorPortal() {
   }
 
   const filtered = vendors.filter(v => {
-    const q = search.toLowerCase()
-    const matchQ = !q || v.companyName.toLowerCase().includes(q) || v.refNo.toLowerCase().includes(q) || v.gstNo.toLowerCase().includes(q)
+    const matchQ = matchesSearch(search, v.companyName, v.refNo, v.gstNo)
     const matchS = filterStatus === 'All' || v.status === filterStatus
     return matchQ && matchS
   })

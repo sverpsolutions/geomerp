@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import { useEffect, useState } from 'react'
 import { masters_api, type manufacturer_type } from '../../api/masters'
 import PageHeader from '../../components/ui/PageHeader'
@@ -23,9 +24,7 @@ export default function manufacturers_page({ searchQuery = '', onCountUpdate }: 
   useEffect(() => { load() }, [])
 
   const filtered_items = items.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    item.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.country?.toLowerCase().includes(searchQuery.toLowerCase())
+    matchesSearch(searchQuery, item.name, item.code, item.country)
   )
 
   useEffect(() => {

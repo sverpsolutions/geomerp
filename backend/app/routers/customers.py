@@ -12,6 +12,7 @@ from app.schemas.party import (
 )
 from app.schemas.common import paginated_response, success_response
 from app.services.auth_service import write_audit
+from app.utils.search import word_match
 
 router = APIRouter(prefix="/customers", tags=["customers"])
 
@@ -27,11 +28,7 @@ async def list_customers(
 ):
     q = select(customer_model).where(customer_model.status == True)
     if search:
-        q = q.where(
-            customer_model.name.ilike(f"%{search}%") |
-            customer_model.phone.ilike(f"%{search}%") |
-            customer_model.gst_number.ilike(f"%{search}%")
-        )
+        q = q.where(word_match(search, customer_model.name, customer_model.phone, customer_model.gst_number))
     if type:
         q = q.where(customer_model.type == type)
 

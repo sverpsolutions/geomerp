@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../utils/search';
 import { useEffect, useState } from 'react'
 import { masters_api, type item_category_type, type item_subcategory_type, type hsn_type } from '../../api/masters'
 import PageHeader from '../../components/ui/PageHeader'
@@ -40,9 +41,7 @@ export default function item_subcategories_page({ searchQuery = '', onCountUpdat
   useEffect(() => { load() }, [])
 
   const filtered_items = items.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    item.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (item as any).category_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    matchesSearch(searchQuery, item.name, item.code, (item as any).category_name)
   )
 
   useEffect(() => {
