@@ -2,6 +2,12 @@
 
 Versions follow `MAJOR.MINOR.PATCH`. New work lands on the `testing` branch as `-beta.N` tags; once verified it is merged to `main` and tagged without the suffix.
 
+## v1.4.2 — 2026-10-01 (main)
+
+### Security
+- `npm audit fix` (no major upgrades): 18 → 6 vulnerable frontend packages; all high-severity issues fixed except vite's dev-server one (axios 1.20.0, postcss 8.5.28, form-data, nanoid, brace-expansion, tmp, browserslist, react-router-dom 6.30.6).
+- Remaining 6 need major upgrades and do not affect the built site: vite/esbuild (dev server only), react-router v7, uuid inside exceljs.
+
 ## v1.4.1 — 2026-10-01 (main)
 
 ### Fixed
