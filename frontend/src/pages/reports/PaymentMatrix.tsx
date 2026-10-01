@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 
-const API_BASE = 'http://localhost:8000/api/v1';
 
 const PaymentMatrix = () => {
     const [data, setData] = useState<any>(null);
@@ -12,7 +11,7 @@ const PaymentMatrix = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_BASE}/reports/payments-matrix?from_date=${fromDate}&to_date=${toDate}`);
+            const res = await api.get(`/reports/payments-matrix?from_date=${fromDate}&to_date=${toDate}`);
             setData(res.data);
         } catch (err) {
             console.error("Failed to fetch payment matrix", err);

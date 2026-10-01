@@ -7,7 +7,7 @@ from sqlalchemy import text, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, current_user_dep
+from app.core.dependencies import get_current_user, current_user_dep, require_role
 
 router = APIRouter(prefix="/stock-reports", tags=["stock-reports"])
 
@@ -395,7 +395,7 @@ from datetime import datetime
 from sqlalchemy.engine import make_url
 from app.core.config import get_settings
 
-@router.post("/email")
+@router.post("/email", dependencies=[Depends(get_current_user)])
 async def email_report(request: Request):
     # This is a placeholder for the actual email sending logic
     body = await request.json()
@@ -403,7 +403,7 @@ async def email_report(request: Request):
     # Simulate success
     return {"status": "success", "message": f"Report sent to {email}"}
 
-@router.post("/backup")
+@router.post("/backup", dependencies=[Depends(require_role("admin"))])
 async def create_backup(request: Request):
     body = await request.json()
     dest_path = body.get("path", "C:\\Backups\\ModernBazaar")

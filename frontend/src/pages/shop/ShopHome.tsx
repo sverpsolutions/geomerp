@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { ShoppingBag, ChevronRight, Zap, Star } from 'lucide-react';
-import axios from 'axios';
+import api from '../../api/axios';
 import ProductCard from '../../components/shop/ProductCard';
 import { shopService } from '../../services/shopService';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 const ShopHome: React.FC = () => {
   const [categories, setCategories] = useState([]);
@@ -26,8 +25,8 @@ const ShopHome: React.FC = () => {
     const fetchData = async () => {
       try {
         const [catRes, featRes, bannerRes] = await Promise.all([
-          axios.get(`${API_BASE}/shop/categories`),
-          axios.get(`${API_BASE}/shop/featured`),
+          api.get(`/shop/categories`),
+          api.get(`/shop/featured`),
           shopService.getBanners()
         ]);
         setCategories(catRes.data.slice(0, 8));

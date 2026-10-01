@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 const fmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
 const fmtFull = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
@@ -14,7 +13,7 @@ const HierarchyReport = () => {
   const fetch = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/reports/hierarchy`, { params: { from_date: fromDate, to_date: toDate } });
+      const res = await api.get(`/reports/hierarchy`, { params: { from_date: fromDate, to_date: toDate } });
       setData(res.data);
     } catch { } finally { setLoading(false); }
   };

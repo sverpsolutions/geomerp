@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from app.core.dependencies import get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, func, text
 
@@ -11,7 +12,7 @@ from app.models.warehouse import rack_master, warehouse_zone, rack_inventory, pu
 from app.models.product import product, product_barcode
 from app.schemas.wms import RackInfo, PendingGRN, GRNItem, PutawayRequest, WMSDashboardStats, RackInventorySchema
 
-router = APIRouter(prefix="/wms", tags=["WMS"])
+router = APIRouter(prefix="/wms", tags=["WMS"], dependencies=[Depends(get_current_user)])
 
 # 1. Dashboard Stats
 @router.get("/dashboard", response_model=WMSDashboardStats)

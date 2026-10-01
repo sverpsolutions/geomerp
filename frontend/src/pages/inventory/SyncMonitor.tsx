@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 import toast from 'react-hot-toast';
 
-const API_BASE = 'http://localhost:8000/api/v1';
 
 const SyncMonitor = () => {
   const [data, setData] = useState<any[]>([]);
@@ -12,7 +11,7 @@ const SyncMonitor = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/sync/monitor`);
+      const res = await api.get(`/sync/monitor`);
       setData(res.data);
       setLastRefreshed(new Date());
     } catch (err) {

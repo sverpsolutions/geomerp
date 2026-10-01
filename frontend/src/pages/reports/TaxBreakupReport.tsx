@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, RefreshCw, FileText } from 'lucide-react';
-import api from '../../services/api';
+import api from '../../api/axios';
 
 const TaxBreakupReport = () => {
   const today = new Date().toISOString().split('T')[0];

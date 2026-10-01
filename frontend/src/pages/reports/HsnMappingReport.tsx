@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 const HsnMappingReport = () => {
   const [data, setData] = useState<any>(null);
@@ -10,7 +9,7 @@ const HsnMappingReport = () => {
   const fetch = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/reports/hsn-mapping`);
+      const res = await api.get(`/reports/hsn-mapping`);
       setData(res.data);
     } catch { /* empty */ } finally { setLoading(false); }
   };

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 const HsnExceptionReport = () => {
   const today = new Date().toISOString().split('T')[0];
@@ -14,7 +13,7 @@ const HsnExceptionReport = () => {
     setLoading(true);
     try {
       const params = { from_date: fromDate, to_date: toDate };
-      const res = await axios.get(`${API}/reports/hsn-exceptions`, { params });
+      const res = await api.get(`/reports/hsn-exceptions`, { params });
       setData(res.data);
     } catch { /* empty */ } finally { setLoading(false); }
   };

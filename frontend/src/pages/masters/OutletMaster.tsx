@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 import { useSyncStore } from '../../store/syncStore';
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '/api/v1';
 
 const OutletMaster = () => {
   const [showModal, setShowModal] = useState(false);
@@ -27,7 +27,7 @@ const OutletMaster = () => {
     setImporting(true);
     setImportResult(null);
     try {
-      const res = await axios.post(`${API_BASE}/import-export/import/locations`, formData);
+      const res = await api.post(`/import-export/import/locations`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setImportResult(res.data);
       fetchOutlets();
     } catch (err: any) {
@@ -92,7 +92,7 @@ const OutletMaster = () => {
 
   const fetchOutlets = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/outlets`);
+      const res = await api.get(`/outlets`);
       setOutlets(res.data);
     } catch (err) {
       console.error("Failed to fetch outlets", err);
@@ -105,7 +105,7 @@ const OutletMaster = () => {
     setCheckingId(id);
     setConnectionData(null);
     try {
-      const res = await axios.post(`${API_BASE}/outlets/test-connection/${id}`);
+      const res = await api.post(`/outlets/test-connection/${id}`);
       if (res.data.success) {
         setConnectionData({ id, info: res.data.data.sample_info });
         alert(`Success! ${res.data.data.sample_info}`);
@@ -167,7 +167,7 @@ const OutletMaster = () => {
   const handleDelete = async (id: number) => {
     if (!window.confirm("Are you sure you want to delete this outlet?")) return;
     try {
-      await axios.delete(`${API_BASE}/outlets/${id}`);
+      await api.delete(`/outlets/${id}`);
       fetchOutlets();
     } catch (err) {
       alert("Failed to delete outlet");
@@ -234,10 +234,10 @@ const OutletMaster = () => {
 
     try {
       if (editId) {
-        await axios.put(`${API_BASE}/outlets/${editId}`, dataToSend);
+        await api.put(`/outlets/${editId}`, dataToSend);
         alert("Outlet updated successfully!");
       } else {
-        await axios.post(`${API_BASE}/outlets`, dataToSend);
+        await api.post(`/outlets`, dataToSend);
         alert("Outlet registered successfully!");
       }
       setShowModal(false);

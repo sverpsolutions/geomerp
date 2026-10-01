@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Database, Folder, ShieldCheck, RefreshCw } from 'lucide-react';
-import api from '../../services/api';
+import api from '../../api/axios';
 import toast from 'react-hot-toast';
 
 interface BackupModalProps {

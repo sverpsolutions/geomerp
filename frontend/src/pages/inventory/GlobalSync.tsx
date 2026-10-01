@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 import { useSyncStore } from '../../store/syncStore';
 
-const API_BASE = 'http://localhost:8000/api/v1';
 
 type SyncAction = {
   key: string;
@@ -155,7 +154,7 @@ const GlobalSync = () => {
 
   const fetchOutlets = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/outlets`);
+      const res = await api.get(`/outlets`);
       setOutlets(res.data);
     } catch (err) {
       console.error('Failed to fetch outlets', err);
@@ -170,8 +169,8 @@ const GlobalSync = () => {
     setRunning(outlet.id, true);
     setResults(prev => ({ ...prev, [key]: { success: false, message: 'Running...' } }));
     try {
-      const url = `${API_BASE}${action.endpoint(outlet.id, selectedDate, endDate)}`;
-      const res = await axios.post(url);
+      const url = `${action.endpoint(outlet.id, selectedDate, endDate)}`;
+      const res = await api.post(url);
       const msg = res.data?.message || 'Done';
       setResults(prev => ({ ...prev, [key]: { success: true, message: msg } }));
     } catch (err: any) {
@@ -191,7 +190,7 @@ const GlobalSync = () => {
 
   const fetchLogs = async (id: number) => {
     try {
-      const res = await axios.get(`${API_BASE}/sync/logs/${id}?limit=15`);
+      const res = await api.get(`/sync/logs/${id}?limit=15`);
       setLogs(prev => ({ ...prev, [id]: res.data }));
       setOpenLogs(id);
     } catch {
@@ -204,7 +203,7 @@ const GlobalSync = () => {
 
   const runDebug = async (outlet: any) => {
     try {
-      const res = await axios.get(`${API_BASE}/sync/debug-payments/${outlet.id}?sync_date=${selectedDate}`);
+      const res = await api.get(`/sync/debug-payments/${outlet.id}?sync_date=${selectedDate}`);
       setDebugInfo(res.data);
       setDebugOutlet(outlet.outlet_name);
     } catch (err: any) {
@@ -243,8 +242,8 @@ const GlobalSync = () => {
       setResults(prev => ({ ...prev, [key]: { success: false, message: 'Queueing...' } }));
       
       try {
-        const url = `${API_BASE}${action.endpoint(outlet.id, selectedDate, endDate)}`;
-        const res = await axios.post(url);
+        const url = `${action.endpoint(outlet.id, selectedDate, endDate)}`;
+        const res = await api.post(url);
         if (res.data) successCount++;
         setResults(prev => ({ ...prev, [key]: { success: true, message: res.data?.message || 'Done' } }));
       } catch (err: any) {

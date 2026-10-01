@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 const fmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
 const SLAB_COLORS: Record<string, string> = {
@@ -24,7 +23,7 @@ const GSTReport = () => {
     try {
       const params: any = { from_date: fromDate, to_date: toDate };
       if (outletId) params.outlet_id = outletId;
-      const res = await axios.get(`${API}/reports/gst`, { params });
+      const res = await api.get(`/reports/gst`, { params });
       setData(res.data);
     } catch { } finally { setLoading(false); }
   };

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 const fmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
 
 const HOUR_LABELS = ['12AM','1AM','2AM','3AM','4AM','5AM','6AM','7AM','8AM','9AM','10AM','11AM',
@@ -22,7 +21,7 @@ const HourlySalesReport = () => {
     try {
       const params: any = { from_date: fromDate, to_date: toDate };
       if (outletId) params.outlet_id = outletId;
-      const res = await axios.get(`${API}/reports/hourly`, { params });
+      const res = await api.get(`/reports/hourly`, { params });
       setData(res.data);
     } catch { } finally { setLoading(false); }
   };

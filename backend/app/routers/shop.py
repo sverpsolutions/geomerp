@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
+from app.core.dependencies import get_current_user
 from sqlalchemy import select, func, or_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
@@ -61,7 +62,7 @@ async def get_featured_products(db: AsyncSession = Depends(get_db)):
 
 # --- Customer Management ---
 
-@router.post("/customers", response_model=ShopCustomerOut)
+@router.post("/customers", response_model=ShopCustomerOut, dependencies=[Depends(get_current_user)])
 async def create_or_get_customer(body: ShopCustomerCreate, db: AsyncSession = Depends(get_db)):
     """Create a new shop customer or return existing one by phone."""
     # Check if customer exists by phone
@@ -97,7 +98,7 @@ async def create_or_get_customer(body: ShopCustomerCreate, db: AsyncSession = De
     await db.refresh(customer)
     return customer
 
-@router.get("/customers/search")
+@router.get("/customers/search", dependencies=[Depends(get_current_user)])
 async def search_customers(q: str = Query("", min_length=2), db: AsyncSession = Depends(get_db)):
     """Search customers by name or phone."""
     stmt = select(shop_customer).where(
@@ -180,7 +181,7 @@ async def place_shop_order(body: ShopOrderCreate, db: AsyncSession = Depends(get
 
 # --- Shop Specific Reports ---
 
-@router.get("/reports/sales", response_model=list[ShopSalesReport])
+@router.get("/reports/sales", response_model=list[ShopSalesReport], dependencies=[Depends(get_current_user)])
 async def get_shop_sales_report(days: int = 30, db: AsyncSession = Depends(get_db)):
     start_date = datetime.now() - timedelta(days=days)
     stmt = (
@@ -199,7 +200,7 @@ async def get_shop_sales_report(days: int = 30, db: AsyncSession = Depends(get_d
         for r in res.all()
     ]
 
-@router.get("/reports/top-products", response_model=list[ShopTopProduct])
+@router.get("/reports/top-products", response_model=list[ShopTopProduct], dependencies=[Depends(get_current_user)])
 async def get_shop_top_products(limit: int = 10, db: AsyncSession = Depends(get_db)):
     stmt = (
         select(
@@ -220,7 +221,7 @@ async def get_shop_top_products(limit: int = 10, db: AsyncSession = Depends(get_
 
 # --- Admin: Dashboard Stats ---
 
-@router.get("/admin/dashboard", response_model=ShopDashboardStats)
+@router.get("/admin/dashboard", response_model=ShopDashboardStats, dependencies=[Depends(get_current_user)])
 async def get_shop_dashboard(db: AsyncSession = Depends(get_db)):
     """Get aggregated dashboard stats for the shop admin."""
     total_sales = (await db.execute(
@@ -256,7 +257,7 @@ async def get_shop_dashboard(db: AsyncSession = Depends(get_db)):
 
 # --- Admin: Orders Management ---
 
-@router.get("/admin/orders")
+@router.get("/admin/orders", dependencies=[Depends(get_current_user)])
 async def list_all_orders(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -320,7 +321,7 @@ async def list_all_orders(
         "total_pages": math.ceil(total / per_page) if per_page else 1
     }
 
-@router.get("/admin/orders/{order_id}")
+@router.get("/admin/orders/{order_id}", dependencies=[Depends(get_current_user)])
 async def get_order_detail(order_id: int, db: AsyncSession = Depends(get_db)):
     """Get a single order with items and customer info."""
     stmt = (
@@ -372,7 +373,7 @@ async def get_order_detail(order_id: int, db: AsyncSession = Depends(get_db)):
         ]
     }
 
-@router.put("/admin/orders/{order_id}/status")
+@router.put("/admin/orders/{order_id}/status", dependencies=[Depends(get_current_user)])
 async def update_order_status(order_id: int, status: str = Query(...), db: AsyncSession = Depends(get_db)):
     """Update order status (pending, processing, shipped, delivered, cancelled)."""
     valid_statuses = ["pending", "processing", "shipped", "delivered", "cancelled"]
@@ -392,7 +393,7 @@ async def update_order_status(order_id: int, status: str = Query(...), db: Async
 
 # --- Admin: Customers Management ---
 
-@router.get("/admin/customers")
+@router.get("/admin/customers", dependencies=[Depends(get_current_user)])
 async def list_all_customers(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -462,13 +463,13 @@ async def list_active_banners(db: AsyncSession = Depends(get_db)):
     rows = (await db.execute(stmt)).scalars().all()
     return rows
 
-@router.get("/admin/banners", response_model=list[ShopBannerOut])
+@router.get("/admin/banners", response_model=list[ShopBannerOut], dependencies=[Depends(get_current_user)])
 async def list_all_banners_admin(db: AsyncSession = Depends(get_db)):
     stmt = select(shop_banner).order_by(shop_banner.sort_order)
     rows = (await db.execute(stmt)).scalars().all()
     return rows
 
-@router.post("/admin/banners", response_model=ShopBannerOut)
+@router.post("/admin/banners", response_model=ShopBannerOut, dependencies=[Depends(get_current_user)])
 async def create_banner(body: ShopBannerCreate, db: AsyncSession = Depends(get_db)):
     banner = shop_banner(**body.model_dump())
     db.add(banner)
@@ -476,7 +477,7 @@ async def create_banner(body: ShopBannerCreate, db: AsyncSession = Depends(get_d
     await db.refresh(banner)
     return banner
 
-@router.put("/admin/banners/{banner_id}", response_model=ShopBannerOut)
+@router.put("/admin/banners/{banner_id}", response_model=ShopBannerOut, dependencies=[Depends(get_current_user)])
 async def update_banner(banner_id: int, body: ShopBannerCreate, db: AsyncSession = Depends(get_db)):
     stmt = select(shop_banner).where(shop_banner.id == banner_id)
     banner = (await db.execute(stmt)).scalar_one_or_none()
@@ -490,7 +491,7 @@ async def update_banner(banner_id: int, body: ShopBannerCreate, db: AsyncSession
     await db.refresh(banner)
     return banner
 
-@router.delete("/admin/banners/{banner_id}")
+@router.delete("/admin/banners/{banner_id}", dependencies=[Depends(get_current_user)])
 async def delete_banner(banner_id: int, db: AsyncSession = Depends(get_db)):
     stmt = select(shop_banner).where(shop_banner.id == banner_id)
     banner = (await db.execute(stmt)).scalar_one_or_none()
@@ -503,7 +504,7 @@ async def delete_banner(banner_id: int, db: AsyncSession = Depends(get_db)):
 
 # --- Product Image Auto Setup ---
 
-@router.post("/admin/products/auto-image-setup")
+@router.post("/admin/products/auto-image-setup", dependencies=[Depends(get_current_user)])
 async def auto_setup_product_images(body: ProductImageSetupRequest, db: AsyncSession = Depends(get_db)):
     """
     Automatically matches products with images based on item code or name.

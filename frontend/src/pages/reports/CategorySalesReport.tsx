@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement } from 'chart.js';
-import axios from 'axios';
+import api from '../../api/axios';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 ChartJS.register(ArcElement);
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 const fmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const COLORS = ['#2563EB','#16A34A','#D97706','#DC2626','#7C3AED','#0EA5E9','#F97316','#EC4899','#14B8A6','#6366F1','#84CC16','#F43F5E'];
 
@@ -24,7 +23,7 @@ const CategorySalesReport = () => {
     try {
       const params: any = { from_date: fromDate, to_date: toDate };
       if (outletId) params.outlet_id = outletId;
-      const res = await axios.get(`${API}/reports/category-sales`, { params });
+      const res = await api.get(`/reports/category-sales`, { params });
       setData(res.data);
     } catch { /* empty */ } finally { setLoading(false); }
   };

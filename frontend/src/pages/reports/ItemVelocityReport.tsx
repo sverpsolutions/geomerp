@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 const fmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 const VEL_COLORS: Record<string,string> = { FAST:'bg-green-100 text-green-700', MEDIUM:'bg-blue-100 text-blue-700', SLOW:'bg-amber-100 text-amber-700', DEAD:'bg-red-100 text-red-700' };
 
@@ -17,7 +16,7 @@ const ItemVelocityReport = () => {
     setLoading(true);
     try {
       const p: any = {}; if (velocity) p.velocity = velocity; if (outletId) p.outlet_id = outletId;
-      setData((await axios.get(`${API}/reports/item-velocity`, { params: p })).data);
+      setData((await api.get(`/reports/item-velocity`, { params: p })).data);
     } catch {} finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);

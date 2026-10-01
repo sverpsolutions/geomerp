@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import HHTLayout from '../../layouts/HHTLayout';
-import axios from 'axios';
+import api from '../../api/axios';
 
 type FlowState = 'SCAN_RACK' | 'SCAN_ITEM' | 'ENTER_QTY' | 'SUCCESS';
 
@@ -25,7 +25,7 @@ const GRNPutaway: React.FC = () => {
 
   const fetchGRNDetails = async () => {
     try {
-      const res = await axios.get(`/api/wms/grn-details/${grnId}`);
+      const res = await api.get(`/wms/grn-details/${grnId}`);
       setCurrentGRN(res.data);
     } catch (err) {
       console.error('Error fetching GRN details', err);
@@ -43,7 +43,7 @@ const GRNPutaway: React.FC = () => {
     setError(null);
     if (state === 'SCAN_RACK') {
       try {
-        await axios.get(`/api/wms/rack-info/${value}`);
+        await api.get(`/wms/rack-info/${value}`);
         setRackCode(value);
         setState('SCAN_ITEM');
         playSound('success');
@@ -71,7 +71,7 @@ const GRNPutaway: React.FC = () => {
   const submitPutaway = async () => {
     setLoading(true);
     try {
-      await axios.post('/api/wms/putaway', {
+      await api.post('/wms/putaway', {
         grn_id: grnId,
         rack_code: rackCode,
         barcode: itemBarcode,

@@ -11,7 +11,7 @@ from app.schemas.outlet import OutletCreate, OutletOut
 import asyncio
 from urllib.parse import quote_plus
 
-router = APIRouter(prefix="/outlets", tags=["outlets"])
+router = APIRouter(prefix="/outlets", tags=["outlets"], dependencies=[Depends(get_current_user)])
 
 @router.get("", response_model=list[OutletOut])
 async def list_outlets(db: AsyncSession = Depends(get_db)):

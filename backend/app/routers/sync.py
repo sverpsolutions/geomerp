@@ -2,6 +2,7 @@ from decimal import Decimal
 from datetime import datetime, date as date_type
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from app.core.dependencies import get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, text, update
 import asyncio
@@ -29,7 +30,7 @@ async def log_validation_error(db: AsyncSession, outlet_id: int, sync_type: str,
     db.add(err)
     await db.flush()
 
-router = APIRouter(prefix="/sync", tags=["sync"])
+router = APIRouter(prefix="/sync", tags=["sync"], dependencies=[Depends(get_current_user)])
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────

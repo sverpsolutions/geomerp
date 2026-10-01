@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 const fmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
 const OutstandingReport = () => {
@@ -14,7 +13,7 @@ const OutstandingReport = () => {
     try {
       const params: any = {};
       if (outletId) params.outlet_id = outletId;
-      const res = await axios.get(`${API}/reports/outstanding`, { params });
+      const res = await api.get(`/reports/outstanding`, { params });
       setData(res.data);
     } catch { } finally { setLoading(false); }
   };

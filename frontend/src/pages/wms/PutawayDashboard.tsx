@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HHTLayout from '../../layouts/HHTLayout';
-import axios from 'axios';
+import api from '../../api/axios';
 
 const PutawayDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -20,10 +20,10 @@ const PutawayDashboard: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      await axios.post('/api/wms/sync-grns');
+      await api.post('/wms/sync-grns');
       const [grnRes, statsRes] = await Promise.all([
-        axios.get('/api/wms/pending-grns'),
-        axios.get('/api/wms/dashboard'),
+        api.get('/wms/pending-grns'),
+        api.get('/wms/dashboard'),
       ]);
       setPendingGRNs(grnRes.data);
       setStats({

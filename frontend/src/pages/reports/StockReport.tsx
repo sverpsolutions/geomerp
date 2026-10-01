@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../services/api';
+import api from '../../api/axios';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { 
@@ -78,7 +78,7 @@ const StockReport = () => {
       if (activeTab === 'summary') params.group_by = groupBy;
       else { params.from_date = fromDate; params.to_date = toDate; }
 
-      const res = await api.get(endpoint, { params });
+      const res = await api.get(endpoint, { params, paramsSerializer: { indexes: null } });
       setData(res.data);
     } catch (err) { console.error("Failed to fetch stock data", err); }
     finally { setLoading(false); }

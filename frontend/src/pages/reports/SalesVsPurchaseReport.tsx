@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Bar } from 'react-chartjs-2';
-import axios from 'axios';
+import api from '../../api/axios';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 const fmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
 const SalesVsPurchaseReport = () => {
@@ -15,7 +14,7 @@ const SalesVsPurchaseReport = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/reports/sales-vs-purchase`, { params: { year } });
+      const res = await api.get(`/reports/sales-vs-purchase`, { params: { year } });
       setData(res.data);
     } catch { /* empty */ } finally { setLoading(false); }
   };
