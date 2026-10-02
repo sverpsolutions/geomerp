@@ -16,6 +16,7 @@ from app.models.invoice import (
 )
 from app.models.product import product as product_model
 from app.models.outlet import outlet as outlet_model
+from app.services import shift_service
 from app.schemas.invoice import (
     invoice_create, payment_in,
     estimate_create, estimate_item_in, invoice_item_in,
@@ -185,6 +186,7 @@ async def create_invoice(
     data: invoice_create,
     user_id: Optional[int],
 ) -> invoice:
+    shift_id = await shift_service.guard(db, data.outlet_id, user_id, data.invoice_date)
     invoice_no = await _next_invoice_no(db, data.outlet_id)
 
     # build item rows + collect computed dicts for totalling
@@ -255,6 +257,7 @@ async def create_invoice(
         due_amount=due,
         status=status,
         created_by=user_id,
+        shift_id=shift_id,
         **totals,
     )
     inv.items = item_rows
@@ -288,6 +291,7 @@ async def create_invoice(
             payment_date=data.invoice_date,
             payment_mode=mode,
             created_by=user_id,
+            shift_id=shift_id,
         ))
         await db.flush()  # next _next_payment_no must count this row
 
@@ -375,6 +379,9 @@ async def add_payment(
     inv = await db.get(invoice, invoice_id)
     if not inv:
         raise ValueError("Invoice not found")
+    if inv.status == "cancelled":
+        raise ValueError("Cannot collect payment on a cancelled invoice")
+    shift_id = await shift_service.guard(db, inv.outlet_id, user_id, data.payment_date)
 
     pay_no = await _next_payment_no(db)
     pay = invoice_payment(
@@ -388,6 +395,7 @@ async def add_payment(
         reference_no=data.reference_no,
         notes=data.notes,
         created_by=user_id,
+        shift_id=shift_id,
     )
     db.add(pay)
 
@@ -432,6 +440,7 @@ async def cancel_invoice(
         raise ValueError("Invoice not found")
     if inv.status == "cancelled":
         raise ValueError("Invoice already cancelled")
+    await shift_service.guard(db, inv.outlet_id, user_id)
 
     # restore stock
     items_res = await db.execute(
@@ -599,9 +608,10 @@ async def convert_estimate_to_invoice(
     ]
 
     from app.schemas.invoice import invoice_create as _ic
+    day = await shift_service.open_day(db, 0)  # estimates are HO documents; invoice dated on the business day
     inv_data = _ic(
         customer_id=est.customer_id,
-        invoice_date=est.estimate_date,
+        invoice_date=day["business_date"] if day else est.estimate_date,
         payment_mode=payment_mode,
         paid_amount=paid_amount,
         items=items,

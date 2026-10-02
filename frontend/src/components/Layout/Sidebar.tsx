@@ -70,6 +70,7 @@ const NAV_SECTIONS = [
     icon: 'fas fa-file-invoice',
     color: '#10b981', // Emerald
     children: [
+      { label: 'Day & Shift', to: '/billing/day-shift', icon: 'fas fa-cash-register' },
       { label: 'All Invoices', to: '/billing/invoices', icon: 'fas fa-list' },
       { label: 'New Invoice', to: '/billing/create', icon: 'fas fa-plus' },
       { label: 'Sales Return', to: '/billing/returns', icon: 'fas fa-undo' },

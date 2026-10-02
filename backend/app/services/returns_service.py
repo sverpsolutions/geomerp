@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.invoice import invoice, invoice_item, stock_ledger
 from app.models.product import product
 from app.services.billing_service import _write_stock_ledger, _update_product_stock
+from app.services import shift_service
 
 CN_PREFIX = "CN-HO-"
 ZERO = Decimal("0")
@@ -152,6 +153,7 @@ async def create_return(db: AsyncSession, data, user_id: Optional[int]) -> invoi
     if data.refund_method not in ("cash", "adjust"):
         raise ValueError("refund_method must be 'cash' or 'adjust'")
     orig = await _original(db, data.invoice_no, lock=True)  # serialises returns on one bill
+    shift_id = await shift_service.guard(db, orig.outlet_id, user_id, data.return_date or date.today())
     lines = {l["product_id"]: l for l in await returnable_lines(db, orig)}
 
     rows, totals = [], {"taxable_amt": ZERO, "cgst_amount": ZERO, "sgst_amount": ZERO, "igst_amount": ZERO, "total": ZERO}
@@ -190,7 +192,7 @@ async def create_return(db: AsyncSession, data, user_id: Optional[int]) -> invoi
             paid_amount=total, due_amount=ZERO, payment_mode=data.refund_method, is_interstate=orig.is_interstate,
             notes=data.notes, status="paid", created_by=user_id,
             ref_invoice_no=orig.invoice_no, return_reason=data.reason,
-            refund_method=data.refund_method, adjusted_amount=adjusted,
+            refund_method=data.refund_method, adjusted_amount=adjusted, shift_id=shift_id,
         )
         cn.items = rows
         try:
@@ -227,6 +229,7 @@ async def cancel_return(db: AsyncSession, return_id: int, reason: str, user_id: 
         raise LookupError("Credit note not found (outlet returns are cancelled at the outlet)")
     if cn.status == "cancelled":
         return cn  # idempotent
+    await shift_service.guard(db, cn.outlet_id, user_id)
     posted = (await db.execute(
         select(stock_ledger.product_id, stock_ledger.qty)
         .where(stock_ledger.ref_id == cn.id, stock_ledger.txn_type == "sale_return")

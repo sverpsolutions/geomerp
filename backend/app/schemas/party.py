@@ -1,11 +1,11 @@
 from datetime import datetime, date
 from decimal import Decimal
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 import re
 from app.utils.gst_validators import (
     validate_gstin, validate_pan, validate_cin,
     extract_pan_from_gstin, extract_state_code_from_gstin,
-    CIN_REQUIRED_TYPES,
+    CIN_REQUIRED_TYPES, STATE_CODE_MAP, get_state_name,
 )
 
 
@@ -22,63 +22,165 @@ def _validate_gst(v: str | None) -> str | None:
 
 # ── Customer ──────────────────────────────────────────────────────────────────
 
-class customer_create(BaseModel):
-    name: str
-    phone: str
-    email: str | None = None
-    address: str | None = None
-    city: str | None = None
-    state: str = "Delhi"
-    pincode: str | None = None
-    type: str = "retail"
-    gst_number: str | None = None
-    credit_limit: Decimal = Decimal("0.00")
-    opening_balance: Decimal = Decimal("0.00")
-    show_outstanding_in_print: bool = False
-
-    @field_validator("type")
-    @classmethod
-    def validate_type(cls, v: str) -> str:
-        if v not in ("retail", "wholesale", "hotel", "institution"):
-            raise ValueError("type must be retail / wholesale / hotel / institution")
-        return v
-
-    @field_validator("gst_number")
-    @classmethod
-    def validate_gst(cls, v: str | None) -> str | None:
-        return _validate_gst(v)
+CUSTOMER_TYPES = ("retail", "wholesale", "hotel", "institution")
+GST_REG_TYPES = ("Regular", "Composition", "Unregistered", "Consumer", "SEZ")
+_GST_REQUIRED = ("Regular", "Composition", "SEZ")
 
 
-class customer_update(BaseModel):
+class _customer_fields(BaseModel):
+    """Shared customer fields + GST rules. All optional so update can reuse it."""
     name: str | None = None
     phone: str | None = None
+    alt_phone: str | None = None
     email: str | None = None
+    contact_person: str | None = None
     address: str | None = None
     city: str | None = None
     state: str | None = None
     pincode: str | None = None
+    shipping_address: str | None = None
+    shipping_city: str | None = None
+    shipping_state: str | None = None
+    shipping_pincode: str | None = None
     type: str | None = None
+    gst_registration_type: str | None = None
     gst_number: str | None = None
-    credit_limit: Decimal | None = None
-    status: bool | None = None
+    pan_number: str | None = None
+    state_code: str | None = None
+    credit_limit: Decimal | None = Field(None, ge=0)
+    credit_days: int | None = Field(None, ge=0, le=365)
+    discount_percent: Decimal | None = Field(None, ge=0, le=100)
+    notes: str | None = None
     show_outstanding_in_print: bool | None = None
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def strip_blank(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+            return v or None
+        return v
+
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v: str | None) -> str | None:
+        if v is not None and v not in CUSTOMER_TYPES:
+            raise ValueError("type must be retail / wholesale / hotel / institution")
+        return v
+
+    @field_validator("gst_registration_type")
+    @classmethod
+    def validate_reg_type(cls, v: str | None) -> str | None:
+        if v is not None and v not in GST_REG_TYPES:
+            raise ValueError(f"GST registration type must be one of {', '.join(GST_REG_TYPES)}")
+        return v
+
+    @field_validator("phone", "alt_phone")
+    @classmethod
+    def validate_phone(cls, v: str | None) -> str | None:
+        if v is not None and not re.fullmatch(r"\+?[0-9][0-9 \-]{5,14}", v):
+            raise ValueError("invalid phone number")
+        return v
+
+    @field_validator("pincode", "shipping_pincode")
+    @classmethod
+    def validate_pincode(cls, v: str | None) -> str | None:
+        if v is not None and not re.fullmatch(r"[1-9][0-9]{5}", v):
+            raise ValueError("pincode must be 6 digits")
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str | None) -> str | None:
+        if v is not None and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", v):
+            raise ValueError("invalid email address")
+        return v
+
+    @field_validator("pan_number")
+    @classmethod
+    def validate_pan_no(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        ok, err = validate_pan(v.upper())
+        if not ok:
+            raise ValueError(err)
+        return v.upper()
+
+    @field_validator("gst_number")
+    @classmethod
+    def validate_gst(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        ok, err = validate_gstin(v)  # format + state code + checksum
+        if not ok:
+            raise ValueError(err)
+        return v.upper()
+
+    @model_validator(mode="after")
+    def gst_rules(self):
+        # GSTIN is the source of truth for state code, state name and PAN
+        if self.gst_number:
+            code = extract_state_code_from_gstin(self.gst_number)
+            self.state_code = code
+            self.state = get_state_name(code) or self.state
+            self.pan_number = extract_pan_from_gstin(self.gst_number)
+            if self.gst_registration_type in (None, "Unregistered", "Consumer"):
+                self.gst_registration_type = "Regular"
+        elif self.gst_registration_type in _GST_REQUIRED:
+            raise ValueError(f"GSTIN is required for {self.gst_registration_type} registration")
+        elif "gst_number" in self.model_fields_set and self.gst_registration_type is None:
+            self.gst_registration_type = "Unregistered"
+        if not self.gst_number and self.state and not self.state_code:
+            self.state_code = next((c for c, n in STATE_CODE_MAP.items() if n == self.state), None)
+        return self
+
+
+class customer_create(_customer_fields):
+    name: str
+    phone: str
+    state: str = "Delhi"
+    type: str = "retail"
+    gst_registration_type: str = "Unregistered"
+    customer_code: str | None = None  # auto-generated when blank
+    credit_limit: Decimal = Field(Decimal("0.00"), ge=0)
+    credit_days: int = Field(0, ge=0, le=365)
+    discount_percent: Decimal = Field(Decimal("0.00"), ge=0, le=100)
+    opening_balance: Decimal = Decimal("0.00")
+    show_outstanding_in_print: bool = False
+
+
+class customer_update(_customer_fields):
+    status: bool | None = None
     portal_active: bool | None = None
 
 
 class customer_out(BaseModel):
     id: int
+    customer_code: str | None
     name: str
     phone: str
+    alt_phone: str | None
     email: str | None
+    contact_person: str | None
     address: str | None
     city: str | None
     state: str
+    state_code: str | None
     pincode: str | None
+    shipping_address: str | None
+    shipping_city: str | None
+    shipping_state: str | None
+    shipping_pincode: str | None
     type: str
+    gst_registration_type: str | None
     gst_number: str | None
+    pan_number: str | None
     credit_limit: Decimal
+    credit_days: int | None
+    discount_percent: Decimal | None
     balance: Decimal
     opening_balance: Decimal
+    notes: str | None
     status: bool
     show_outstanding_in_print: bool
     portal_active: bool
@@ -89,16 +191,29 @@ class customer_out(BaseModel):
 
 class customer_list_out(BaseModel):
     id: int
+    customer_code: str | None
     name: str
     phone: str
     email: str | None
+    contact_person: str | None
     city: str | None
+    state: str | None
     type: str
+    gst_registration_type: str | None
     gst_number: str | None
     balance: Decimal
     credit_limit: Decimal
+    credit_days: int | None
     status: bool
     model_config = {"from_attributes": True}
+
+
+class customer_summary(BaseModel):
+    total: int
+    active: int
+    wholesale: int
+    b2b: int
+    outstanding: Decimal
 
 
 # ── Supplier ──────────────────────────────────────────────────────────────────
@@ -444,3 +559,21 @@ class ledger_row(BaseModel):
     debit: Decimal
     credit: Decimal
     balance: Decimal
+
+
+if __name__ == "__main__":
+    # customer GST rules self-check: python -m app.schemas.party
+    G = "27AAPFU0939F1ZV"  # valid checksum, Maharashtra
+    c = customer_create(name="Acme", phone="9876543210", gst_number=G.lower())
+    assert (c.gst_number, c.state, c.state_code, c.pan_number, c.gst_registration_type) == \
+        (G, "Maharashtra", "27", "AAPFU0939F", "Regular"), c
+    for bad in ({"gst_number": G[:-1] + "A"}, {"gst_registration_type": "Regular"}, {"pincode": "12"}):
+        try:
+            customer_create(name="Acme", phone="9876543210", **bad); raise AssertionError(bad)
+        except ValueError:
+            pass
+    c = customer_create(name="Walk", phone="9876543210", state="Gujarat", gst_number="  ")
+    assert (c.gst_number, c.state_code, c.gst_registration_type) == (None, "24", "Unregistered"), c
+    assert customer_update(gst_number="").model_dump(exclude_unset=True) == \
+        {"gst_number": None, "gst_registration_type": "Unregistered"}
+    print("ok")

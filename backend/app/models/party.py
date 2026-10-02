@@ -30,6 +30,19 @@ class customer(base):
     status: Mapped[bool] = mapped_column(Boolean, default=True)
     show_outstanding_in_print: Mapped[bool] = mapped_column(Boolean, default=False)
     portal_active: Mapped[bool] = mapped_column(Boolean, default=False)
+    customer_code: Mapped[str | None] = mapped_column(String(20), unique=True)
+    contact_person: Mapped[str | None] = mapped_column(String(100))
+    alt_phone: Mapped[str | None] = mapped_column(String(20))
+    gst_registration_type: Mapped[str] = mapped_column(String(20), default="Unregistered")  # Regular/Composition/Unregistered/Consumer/SEZ
+    pan_number: Mapped[str | None] = mapped_column(String(10))
+    state_code: Mapped[str | None] = mapped_column(String(2))  # GST place-of-supply code
+    shipping_address: Mapped[str | None] = mapped_column(Text)
+    shipping_city: Mapped[str | None] = mapped_column(String(50))
+    shipping_state: Mapped[str | None] = mapped_column(String(50))
+    shipping_pincode: Mapped[str | None] = mapped_column(String(10))
+    credit_days: Mapped[int] = mapped_column(Integer, default=0)
+    discount_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=0)
+    notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

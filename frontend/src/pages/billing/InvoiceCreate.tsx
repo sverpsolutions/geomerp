@@ -31,7 +31,7 @@ export default function invoice_create_page() {
   const [error, set_error] = useState('')
 
   useEffect(() => {
-    customers_api.list({ per_page: 500 }).then(r => set_customers(r.data.items ?? r.data))
+    customers_api.list({ per_page: 200 }).then(r => set_customers(r.data.data))
     products_api.list({ per_page: 1000, status: true }).then(r => {
       const rows = r.data.items ?? r.data
       set_products(rows.map((p: any) => ({

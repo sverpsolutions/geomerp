@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role, current_user_dep
 from app.models.party import customer as customer_model
 from app.schemas.party import (
-    customer_create, customer_update, customer_out, customer_list_out, ledger_row,
+    customer_create, customer_update, customer_out, customer_list_out, customer_summary, ledger_row,
 )
 from app.schemas.common import paginated_response, success_response
 from app.services.auth_service import write_audit
@@ -23,14 +23,21 @@ async def list_customers(
     per_page: int = Query(25, ge=1, le=200),
     search: str = Query(""),
     type: str | None = Query(None),
+    status_filter: str = Query("active", alias="status", pattern="^(active|inactive|all)$"),
+    gst: str | None = Query(None, pattern="^(b2b|b2c)$"),
     current_user: current_user_dep = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q = select(customer_model).where(customer_model.status == True)
+    q = select(customer_model)
+    if status_filter != "all":
+        q = q.where(customer_model.status == (status_filter == "active"))
     if search:
-        q = q.where(word_match(search, customer_model.name, customer_model.phone, customer_model.gst_number))
+        q = q.where(word_match(search, customer_model.name, customer_model.phone, customer_model.gst_number,
+                               customer_model.customer_code, customer_model.contact_person, customer_model.city))
     if type:
         q = q.where(customer_model.type == type)
+    if gst:
+        q = q.where(customer_model.gst_number.isnot(None) if gst == "b2b" else customer_model.gst_number.is_(None))
 
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
     rows = (await db.execute(
@@ -44,15 +51,49 @@ async def list_customers(
     }
 
 
+@router.get("/summary", response_model=customer_summary)
+async def customers_summary(
+    current_user: current_user_dep = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    c, active = customer_model, customer_model.status == True
+    row = (await db.execute(select(
+        func.count(),
+        func.count().filter(active),
+        func.count().filter(active, c.type == "wholesale"),
+        func.count().filter(active, c.gst_number.isnot(None)),
+        func.coalesce(func.sum(c.balance).filter(active, c.balance > 0), 0),
+    ))).one()
+    return dict(zip(("total", "active", "wholesale", "b2b", "outstanding"), row))
+
+
+async def _ensure_unique(db: AsyncSession, gst_number: str | None, code: str | None, exclude_id: int | None = None):
+    for col, val, label in ((customer_model.gst_number, gst_number, "GSTIN"),
+                            (customer_model.customer_code, code, "customer code")):
+        if not val:
+            continue
+        q = select(customer_model.name).where(col == val)
+        if col is customer_model.gst_number:
+            q = q.where(customer_model.status == True)
+        if exclude_id:
+            q = q.where(customer_model.id != exclude_id)
+        clash = (await db.execute(q.limit(1))).scalar_one_or_none()
+        if clash:
+            raise HTTPException(status_code=409, detail=f"{label} {val} already belongs to '{clash}'")
+
+
 @router.post("", response_model=customer_out, status_code=status.HTTP_201_CREATED)
 async def create_customer(
     body: customer_create,
     current_user: current_user_dep = Depends(require_role("admin", "manager", "staff")),
     db: AsyncSession = Depends(get_db),
 ):
+    await _ensure_unique(db, body.gst_number, body.customer_code)
     obj = customer_model(**body.model_dump(), balance=body.opening_balance)
     db.add(obj)
     await db.flush()
+    if not obj.customer_code:
+        obj.customer_code = f"CUST{obj.id:05d}"
     await write_audit(db=db, module="customers", action="create",
                       record_id=obj.id, description=f"customer '{obj.name}' created",
                       user_id=current_user.user_id, user_name=current_user.username)
@@ -88,7 +129,10 @@ async def update_customer(
     if not row:
         raise HTTPException(status_code=404, detail="customer not found")
 
-    data = body.model_dump(exclude_none=True)
+    await _ensure_unique(db, body.gst_number, None, exclude_id=customer_id)
+    # unset fields stay as-is; explicit null clears only nullable columns (e.g. removing a GSTIN)
+    cols = customer_model.__table__.c
+    data = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None or cols[k].nullable}
     data["updated_at"] = datetime.utcnow()
     await db.execute(update(customer_model).where(customer_model.id == customer_id).values(**data))
     await write_audit(db=db, module="customers", action="update", record_id=customer_id,

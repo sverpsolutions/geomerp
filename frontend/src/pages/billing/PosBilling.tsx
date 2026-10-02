@@ -11,6 +11,7 @@ import { products_api, type product_search_item } from '../../api/products'
 import { customers_api, type customer_list_item } from '../../api/customers'
 import { getCompanySettings } from '../../api/company'
 import { masters_api } from '../../api/masters'
+import { shifts_api, type shift_status } from '../../api/shifts'
 import { useAuthStore } from '../../store/authStore'
 import { printReceipt } from '../../utils/printReceipt'
 
@@ -60,6 +61,15 @@ export default function PosBilling() {
   }, [])
   useEffect(() => { if (outletId && !userOutlet) try { localStorage.setItem(OUTLET_KEY, String(outletId)) } catch { /* storage blocked */ } }, [outletId, userOutlet])
   const [invDate, setInvDate] = useState(new Date().toISOString().slice(0, 10))
+  // day/shift control: bills are dated on the open business day; the API blocks billing when the day is closed
+  const [dayShift, setDayShift] = useState<shift_status | null>(null)
+  useEffect(() => {
+    if (!outletId) return
+    shifts_api.status(outletId).then(r => {
+      setDayShift(r.data)
+      if (r.data.day) setInvDate(r.data.day.business_date)
+    }).catch(() => setDayShift(null))
+  }, [outletId])
   const [lines, setLines] = useState<Line[]>([])
   const [active, setActive] = useState<number | null>(null)
   const [q, setQ] = useState('')
@@ -295,6 +305,12 @@ export default function PosBilling() {
         <div className="flex flex-wrap gap-4 text-xs text-slate-400">
           <span>INVOICE: <strong className="text-white">#UNSAVED (NEW)</strong></span>
           <span>CASHIER: <strong className="text-white">{cashier}</strong></span>
+          {dayShift && (dayShift.day
+            ? <span>DAY: <strong className="text-white">{dayShift.day.business_date.split('-').reverse().join('-')}</strong>
+                {' · '}SHIFT: <strong className={dayShift.my_shift?.outlet_id === outletId ? 'text-white' : 'text-amber-300'}>
+                  {dayShift.my_shift?.outlet_id === outletId ? `#${dayShift.my_shift.id} ${dayShift.my_shift.shift_name}` : 'NOT OPEN'}</strong></span>
+            : <button onClick={() => nav('/billing/day-shift')} className="font-bold text-red-300 hover:text-white">
+                <i className="fas fa-exclamation-triangle mr-1" />DAY NOT OPEN — open Day &amp; Shift</button>)}
           <span>TIME: <strong className="text-white">{clock.toLocaleDateString('en-CA')} {clock.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</strong></span>
         </div>
         <div className="flex items-center gap-4 text-slate-400 text-sm">
@@ -339,7 +355,8 @@ export default function PosBilling() {
         <select value={invType} onChange={e => setInvType(e.target.value)} className="w-[115px] border border-black/15 px-2 py-1">
           <option value="retail">Retail</option><option value="wholesale">Wholesale</option>
         </select>
-        <input type="date" value={invDate} onChange={e => setInvDate(e.target.value)} className="w-[148px] border border-black/15 px-2 py-1" />
+        <input type="date" value={invDate} onChange={e => setInvDate(e.target.value)} disabled={!!dayShift?.day}
+          title={dayShift?.day ? 'Bill date is the open business day' : undefined} className="w-[148px] border border-black/15 px-2 py-1 disabled:bg-slate-100" />
         <div className="flex items-center gap-1.5 bg-slate-100 px-3 h-[31px] font-extrabold text-slate-700" title="Items in this bill">
           <i className="fas fa-boxes text-gray-400" /> {lines.length}
         </div>

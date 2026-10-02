@@ -2,6 +2,22 @@
 
 Versions follow `MAJOR.MINOR.PATCH`. New work lands on the `testing` branch as `-beta.N` tags; once verified it is merged to `main` and tagged without the suffix.
 
+## v1.5.0-beta.1 — 2026-10-02 (testing) — customer master, day & shift control
+
+### Added
+- **Customer Master** (`/masters/customers`, was "coming soon"): auto customer code, type (retail / wholesale / hotel / institution), contact person, alt phone, GST registration type, GSTIN (format + state code + checksum, live check), PAN and state taken from GSTIN, billing + shipping address, credit limit / days, default discount %, opening balance, notes. KPI cards, search, type / B2B-B2C / active filters, over-limit flag, ledger, deactivate / reactivate, CSV export. One active customer per GSTIN. Migration `a9c3e5f7b1d2`.
+- **Day & Shift** (`/billing/day-shift`, ported from NCG Shifts): per location (HO = 0) Day Open → Shift Open (float) → billing → Shift Close (denomination count, system vs actual for every payment mode, shortage / excess, remark required on variance, 80mm report) → Day Close (blocked while shifts are open, totals frozen; emergency force-close; same-day reopen). Day and shift registers. Migration `b4d6f8a0c2e3` adds `business_days`, `cashier_shifts`, `shift_id` on invoices and payments.
+- POS header shows business day / shift; bill date locked to the open business day.
+
+### Changed
+- HO billing actions (invoice, collection, estimate → invoice, sales return, cancel) need the location's business day open and must be dated on it; role `cashier` also needs an open shift. Synced outlet bills are not affected.
+
+### Fixed
+- New Invoice / New Estimate customer dropdown was always empty (`per_page: 500` over the API limit, read `.items` instead of `.data`).
+
+### Removed
+- Unused `pages/customers/CustomerList|CustomerForm|CustomerLedger.tsx`.
+
 ## v1.4.2 — 2026-10-01 (main)
 
 ### Security

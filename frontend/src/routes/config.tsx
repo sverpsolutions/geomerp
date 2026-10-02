@@ -46,6 +46,7 @@ import Units from '../pages/masters/Units';
 import GstMaster from '../pages/masters/GstMaster';
 import CountryMaster from '../pages/masters/CountryMaster';
 import OutletMaster from '../pages/masters/OutletMaster';
+import Customers from '../pages/masters/Customers';
 import SubManufacturers from '../pages/masters/SubManufacturers';
 import Variants from '../pages/masters/Variants';
 import Flavours from '../pages/masters/Flavours';
@@ -78,6 +79,7 @@ import ItemVelocityReport from '../pages/reports/ItemVelocityReport';
 import CustomerAnalyticsReport from '../pages/reports/CustomerAnalyticsReport';
 import SalesReturn from '../pages/billing/SalesReturn';
 import CreditNotes from '../pages/billing/CreditNotes';
+import DayShift from '../pages/billing/DayShift';
 import PurchaseReturn from '../pages/purchases/PurchaseReturn';
 import DebitNotes from '../pages/purchases/DebitNotes';
 import ShopDashboard from '../pages/shop/ShopDashboard';
@@ -103,7 +105,7 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '105', path: '/products/import', component: ImportProducts, title: 'Import Products' },
   { id: '201', path: '/masters/suppliers', component: Suppliers, title: 'Suppliers' },
   { id: '202', path: '/masters/suppliers/approvals', component: VendorApprovals, title: 'Vendor Approvals' },
-  { id: '203', path: '/masters/customers', component: () => <ComingSoon name="Customers" />, title: 'Customers' },
+  { id: '203', path: '/masters/customers', component: Customers, title: 'Customers' },
   { id: '210', path: '/masters/groups', component: Groups, title: 'Item Groups' },
   { id: '211', path: '/masters/subgroups', component: SubGroups, title: 'Sub Groups' },
   { id: '212', path: '/masters/categories', component: Categories, title: 'Categories' },
@@ -124,6 +126,7 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '227', path: '/masters/channels', component: ChannelPartners, title: 'Channel Partners' },
   { id: '901', path: '/settings/company', component: CompanySettings, title: 'Company Settings' },
   { id: '301', path: '/billing/create', component: PosBilling, title: 'New Invoice' },
+  { id: '305', path: '/billing/day-shift', component: DayShift, title: 'Day & Shift' },
   { id: '302', path: '/billing/invoices', component: InvoiceList, title: 'Sales Invoices' },
   { id: '303', path: '/billing/invoices/:id', component: InvoiceView, title: 'Invoice Details' },
   { id: '304', path: '/billing/invoices/new', component: InvoiceCreate, title: 'New Invoice Form' },

@@ -138,4 +138,6 @@ async def cancel_return(return_id: int, body: cancel_in, db: AsyncSession = Depe
         cn = await returns_service.cancel_return(db, return_id, body.reason, user.user_id)
     except LookupError as e:
         raise HTTPException(404, str(e))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     return {"id": cn.id, "status": cn.status}

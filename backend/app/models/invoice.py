@@ -38,6 +38,7 @@ class invoice(base):
     refund_method: Mapped[str | None] = mapped_column(String(20))  # cash | adjust
     adjusted_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
     created_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"))
+    shift_id: Mapped[int | None] = mapped_column(Integer)  # cashier shift the bill was made in
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -95,6 +96,7 @@ class invoice_payment(base):
     reference_no: Mapped[str | None] = mapped_column(String(50))
     notes: Mapped[str | None] = mapped_column(Text)
     created_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"))
+    shift_id: Mapped[int | None] = mapped_column(Integer)  # drawer the money went into
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     invoice_rel: Mapped["invoice | None"] = relationship("invoice", back_populates="payments")
