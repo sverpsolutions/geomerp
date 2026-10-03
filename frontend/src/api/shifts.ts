@@ -12,6 +12,7 @@ export interface mode_row { mode: string; system: string; actual: string; diff: 
 
 export interface shift_live {
   modes: Record<string, string>; total_collected: string; system_cash: string; cash_refunds: string
+  pay_ins: string; expenses: string; pickups: string; pending_expenses: number
   expected_cash: string; total_bills: number; total_sales: string; total_returns: string; credit_sales: string
 }
 
@@ -21,6 +22,7 @@ export interface shift_detail extends shift_row {
   total_returns: string; cash_refunds: string; credit_sales: string; system_cash: string
   mode_totals: mode_row[] | null; diff_total: string; denominations: Record<string, number | string> | null
   first_bill: string | null; last_bill: string | null
+  outlet: { address: string | null; city: string | null; state: string | null; pincode: string | null; store_phone: string | null; gst_number: string | null } | null
   live?: shift_live
 }
 
@@ -31,6 +33,8 @@ export interface day_detail {
   total_bills: number; cancelled_bills: number; gross_sales: string; total_discount: string; total_gst: string
   net_sales: string; total_returns: string; total_credit: string; total_collected: string; total_cash: string
   mode_totals: Record<string, string> | null; total_shortage: string; total_excess: string
+  safe_balance?: string; safe_expected_at_close?: string
+  safe_expected: string | null; safe_counted: string | null; safe_variance: string | null
   shifts: shift_row[]; open_shifts: shift_row[]
 }
 
@@ -50,7 +54,7 @@ export const shifts_api = {
   status: (outlet_id: number) => api.get<shift_status>('/shifts/status', { params: { outlet_id } }),
   day_open: (body: { outlet_id: number; business_date: string; remarks?: string }) => api.post<day_detail>('/shifts/day/open', body),
   day_reopen: (outlet_id: number) => api.post<day_detail>('/shifts/day/reopen', null, { params: { outlet_id } }),
-  day_close: (id: number, body: { remarks?: string; force?: boolean }) => api.post<day_detail>(`/shifts/day/${id}/close`, body),
+  day_close: (id: number, body: { remarks?: string; force?: boolean; safe_counted?: number }) => api.post<day_detail>(`/shifts/day/${id}/close`, body),
   day: (id: number) => api.get<day_detail>(`/shifts/day/${id}`),
   days: (params: { outlet_id?: number; from_date?: string; to_date?: string }) => api.get<day_row[]>('/shifts/days', { params }),
   open: (body: { outlet_id: number; opening_cash: number; shift_name: string; terminal_no?: string; remarks?: string }) =>

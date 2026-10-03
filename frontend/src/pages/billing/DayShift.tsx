@@ -90,6 +90,11 @@ function DaySummary({ day }: { day: day_detail }) {
       {(Number(day.total_shortage) > 0 || Number(day.total_excess) > 0) && (
         <div className="text-[13px]">Cash variance: <span className="text-red-600">shortage {inr(day.total_shortage)}</span> · <span className="text-amber-600">excess {inr(day.total_excess)}</span></div>
       )}
+      {day.safe_counted != null && (
+        <div className="text-[13px]">Safe count: expected {inr(day.safe_expected)} · counted {inr(day.safe_counted)} ·{' '}
+          <span className={Number(day.safe_variance) < 0 ? 'text-red-600 font-semibold' : Number(day.safe_variance) > 0 ? 'text-amber-600 font-semibold' : 'text-green-600'}>
+            {Number(day.safe_variance) ? `variance ${inr(day.safe_variance)}` : 'tallied'}</span></div>
+      )}
       <ModeTable modes={day.mode_totals} />
     </div>
   )
@@ -102,6 +107,13 @@ async function printShift(id: number) {
     .map(d => `<tr><td>₹${d} × ${s.denominations![String(d)]}</td><td class="r">${(d * Number(s.denominations![String(d)])).toFixed(2)}</td></tr>`).join('')
     + (Number(s.denominations.coins) ? `<tr><td>Coins</td><td class="r">${Number(s.denominations.coins).toFixed(2)}</td></tr>` : '') : ''
   const line = (l: string, v: unknown) => `<tr><td>${l}</td><td class="r">${esc(v)}</td></tr>`
+  // header like the bill receipt: logo, brand, then the store's address / phone / GSTIN (HO's when the store has none)
+  const o = s.outlet
+  const logo = co.logo_path ? new URL(co.logo_path, window.location.origin).href : ''
+  const place = [o?.city, o?.state].filter(Boolean).join(', ') + (o?.pincode ? ' - ' + o.pincode : '')
+  const hasPlace = !!o?.address && [o.pincode, o.city].some(v => v && o.address!.includes(v))  // many store addresses already end with city + PIN
+  const addr = o?.address ? [o.address, hasPlace ? '' : place].filter(Boolean).join('<br>') : esc(co.ho_address)
+  const phone = o?.store_phone || co.ho_phone, gstin = o?.gst_number || co.gstin
   const w = window.open('', '_blank', 'width=420,height=700')
   if (!w) return toast.error('Allow pop-ups to print')
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Shift #${s.id}</title><style>
@@ -109,13 +121,18 @@ async function printShift(id: number) {
     table{width:100%;border-collapse:collapse} td,th{padding:1px 0;text-align:left} .r{text-align:right}
     hr{border:0;border-top:1px dashed #000;margin:6px 0} th{border-bottom:1px solid #000}
   </style></head><body>
-    <h3>${esc(co.company_name || 'Shift Report')}</h3><p>${esc(s.outlet_name)}</p><p><b>SHIFT CLOSE REPORT #${s.id}</b></p><hr>
+    ${logo ? `<p><img src="${esc(logo)}" style="max-height:48px;max-width:100%;object-fit:contain" onerror="this.remove()"></p>` : ''}
+    <h3 style="text-transform:uppercase">${esc(co.brand_name || 'Shift Report')}</h3>
+    <p style="font-size:10.5px">${esc(s.outlet_name)}<br>${o?.address ? addr.split('<br>').map(esc).join('<br>') : addr}${phone ? `<br>Ph: ${esc(phone)}` : ''}${gstin ? `<br>GSTIN: <b>${esc(gstin)}</b>` : ''}</p>
+    <hr><p><b>SHIFT CLOSE REPORT #${s.id}</b></p><hr>
     <table>${line('Business date', dmy(s.business_date))}${line('Cashier', s.cashier_name)}${line('Shift', s.shift_name + (s.terminal_no ? ' / ' + s.terminal_no : ''))}
       ${line('Opened', dt(s.opened_at))}${line('Closed', dt(s.closed_at))}${s.closed_by_name ? line('Closed by', s.closed_by_name) : ''}</table><hr>
-    <table>${line('Bills', s.total_bills)}${line('Bill range', s.first_bill ? `${s.first_bill} – ${s.last_bill}` : '—')}
-      ${line('Sales', Number(s.total_sales).toFixed(2))}${line('Returns', Number(s.total_returns).toFixed(2))}${line('Credit given', Number(s.credit_sales).toFixed(2))}</table><hr>
+    <table>${line('Bills', s.total_bills)}</table>
+    ${s.first_bill ? `<p style="text-align:left">Bill no.: ${esc(s.first_bill)}${s.last_bill !== s.first_bill ? ` to ${esc(s.last_bill)}` : ''}</p>` : ''}
+    <table>
+      ${line('Sales', Number(s.total_sales).toFixed(2))}${line('Returns', Number(s.total_returns).toFixed(2))}${line('Credit', Number(s.credit_sales).toFixed(2))}</table><hr>
     <table>${line('Opening float', Number(s.opening_cash).toFixed(2))}${line('Cash collected', Number(s.system_cash).toFixed(2))}
-      ${line('Cash refunds', '-' + Number(s.cash_refunds).toFixed(2))}${line('<b>Expected cash</b>', Number(s.expected_cash).toFixed(2))}${line('<b>Counted cash</b>', Number(s.actual_cash).toFixed(2))}</table><hr>
+      ${line('Cash refunds', (Number(s.cash_refunds) ? '-' : '') + Number(s.cash_refunds).toFixed(2))}${line('<b>Expected cash</b>', Number(s.expected_cash).toFixed(2))}${line('<b>Counted cash</b>', Number(s.actual_cash).toFixed(2))}</table><hr>
     <table><tr><th>Mode</th><th class="r">System</th><th class="r">Actual</th><th class="r">Diff</th></tr>${rows}</table><hr>
     <table>${line('<b>Shortage</b>', Number(s.short_amount).toFixed(2))}${line('<b>Excess</b>', Number(s.excess_amount).toFixed(2))}</table>
     ${den ? `<hr><table>${den}</table>` : ''}${s.close_remarks ? `<hr><p style="text-align:left">Remarks: ${esc(s.close_remarks)}</p>` : ''}
@@ -178,7 +195,10 @@ function ShiftCloseModal({ shiftId, onClose, onDone }: { shiftId: number | null;
               <Stat label="Opening float" value={inr(s.opening_cash)} />
               <Stat label="Expected cash" value={inr(live.expected_cash)} tone="text-primary" />
             </div>
-            <p className="text-[12px] text-text-muted">Expected cash = float {inr(s.opening_cash)} + cash collected {inr(live.system_cash)} − cash refunds {inr(live.cash_refunds)}. Credit given this shift: {inr(live.credit_sales)}.</p>
+            <p className="text-[12px] text-text-muted">Expected cash = float {inr(s.opening_cash)} + cash collected {inr(live.system_cash)} − cash refunds {inr(live.cash_refunds)}
+              {Number(live.pay_ins) > 0 && <> + pay-ins {inr(live.pay_ins)}</>}{Number(live.expenses) > 0 && <> − expenses {inr(live.expenses)}</>}{Number(live.pickups) > 0 && <> − pickups to safe {inr(live.pickups)}</>}.
+              Credit given this shift: {inr(live.credit_sales)}. Counted cash goes into the safe.</p>
+            {live.pending_expenses > 0 && <p className="text-[12px] text-red-600 m-0">{live.pending_expenses} expense(s) are waiting for approval — they must be approved or rejected before closing.</p>}
             <h4 className="text-[12px] font-semibold uppercase tracking-wider text-primary border-b border-border pb-1">Cash count</h4>
             <div className="grid grid-cols-3 gap-2">
               {DENOMS.map(d => (
@@ -237,7 +257,7 @@ export default function DayShift() {
   const [openForm, setOpenForm] = useState({ business_date: today(), remarks: '' })
   const [shiftForm, setShiftForm] = useState({ opening_cash: '', shift_name: 'General', terminal_no: '', remarks: '' })
   const [closeShiftId, setCloseShiftId] = useState<number | null>(null)
-  const [dayClose, setDayClose] = useState<{ remarks: string; force: boolean } | null>(null)
+  const [dayClose, setDayClose] = useState<{ remarks: string; force: boolean; safe: string } | null>(null)
   const [tab, setTab] = useState<'days' | 'shifts'>('days')
   const [days, setDays] = useState<day_row[]>([])
   const [history, setHistory] = useState<shift_row[]>([])
@@ -316,7 +336,7 @@ export default function DayShift() {
                 onClose={st.can_manage_day ? s => setCloseShiftId(s.id) : undefined} />
               {st.can_manage_day && (
                 <div className="flex justify-end">
-                  <button className="btn btn-primary" disabled={busy} onClick={() => setDayClose({ remarks: '', force: false })}>
+                  <button className="btn btn-primary" disabled={busy} onClick={() => setDayClose({ remarks: '', force: false, safe: '' })}>
                     <i className="fas fa-lock mr-2" />Day Close
                   </button>
                 </div>
@@ -422,12 +442,22 @@ export default function DayShift() {
               </div>
             ) : <div className="rounded-lg bg-green-50 text-green-700 p-3 text-[13px]"><i className="fas fa-check-circle mr-1" />All shifts are closed. Totals below will be frozen for this day.</div>}
             <DaySummary day={day} />
-            <div><label className="form-label">Remarks</label>
+            <div className="rounded-lg border border-border p-3 grid sm:grid-cols-3 gap-3 items-end">
+              <div className="sm:col-span-3 text-[13px] font-semibold text-primary"><i className="fas fa-vault mr-1" />Safe count (all cash left at the location after shifts close)</div>
+              <div><div className="text-[11px] uppercase text-text-muted">Safe should hold</div><div className="text-[18px] font-semibold">{inr(day.safe_expected_at_close)}</div></div>
+              <div><label className="form-label">Counted in safe <span className="text-red-500">*</span></label>
+                <input className="form-input" type="number" min={0} step="0.01" value={dayClose.safe} onChange={e => setDayClose(d => d && ({ ...d, safe: e.target.value }))} /></div>
+              <div className={`text-[14px] font-semibold ${dayClose.safe === '' ? 'text-text-muted' : Math.abs(Number(dayClose.safe) - Number(day.safe_expected_at_close)) < 0.005 ? 'text-green-600' : 'text-red-600'}`}>
+                {dayClose.safe === '' ? 'Enter the count' : Math.abs(Number(dayClose.safe) - Number(day.safe_expected_at_close)) < 0.005 ? 'Tallies'
+                  : `${Number(dayClose.safe) < Number(day.safe_expected_at_close) ? 'Short' : 'Excess'} ${inr(Math.abs(Number(dayClose.safe) - Number(day.safe_expected_at_close)))} — will be posted and flagged`}</div>
+            </div>
+            <div><label className="form-label">Remarks{dayClose.safe !== '' && Math.abs(Number(dayClose.safe) - Number(day.safe_expected_at_close)) >= 0.005 && <span className="text-red-500"> *</span>}</label>
               <textarea className="form-input !h-auto" rows={2} value={dayClose.remarks} onChange={e => setDayClose(d => d && ({ ...d, remarks: e.target.value }))} /></div>
             <div className="flex justify-end gap-2">
               <button className="btn btn-secondary" onClick={() => setDayClose(null)}>Cancel</button>
-              <button className="btn btn-primary" disabled={busy || (day.open_shifts.length > 0 && !dayClose.force)}
-                onClick={() => act(() => shifts_api.day_close(day.id, { remarks: dayClose.remarks || undefined, force: dayClose.force }), 'Business day closed').then(ok => ok && setDayClose(null))}>
+              <button className="btn btn-primary" disabled={busy || (day.open_shifts.length > 0 && !dayClose.force) || dayClose.safe === ''
+                  || (Math.abs(Number(dayClose.safe) - Number(day.safe_expected_at_close)) >= 0.005 && !dayClose.remarks.trim())}
+                onClick={() => act(() => shifts_api.day_close(day.id, { remarks: dayClose.remarks || undefined, force: dayClose.force, safe_counted: Number(dayClose.safe) }), 'Business day closed').then(ok => ok && setDayClose(null))}>
                 <i className="fas fa-lock mr-2" />Close Day
               </button>
             </div>

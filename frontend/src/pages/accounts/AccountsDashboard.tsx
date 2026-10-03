@@ -1,146 +1,77 @@
-import React from 'react';
-import StatCard from '../../components/common/StatCard';
+// Accounts dashboard: payables, receivables, cash and bank in one view (live data).
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
+import { accounts_api, type acc_dashboard } from '../../api/accounts'
+import PageHeader from '../../components/ui/PageHeader'
+import { Section, Stat, dmy, errMsg, inr } from './acc_ui'
 
-const AccountsDashboard = () => {
+const PAY_STATUS: Record<string, string> = { pending: 'bg-amber-100 text-amber-700', posted: 'bg-green-100 text-green-700', rejected: 'bg-red-100 text-red-700', void: 'bg-gray-100 text-gray-500' }
+
+export default function AccountsDashboard() {
+  const nav = useNavigate()
+  const [d, setD] = useState<acc_dashboard | null>(null)
+  useEffect(() => { accounts_api.dashboard().then(r => setD(r.data)).catch(e => toast.error(errMsg(e))) }, [])
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold flex items-center">
-            <span className="bg-indigo-600 text-white p-1 rounded mr-2"><i className="fas fa-university"></i></span>
-            Accounts Dashboard
-          </h1>
-          <p className="text-xs text-slate-500 font-medium mt-1">Financial overview & supplier payment status</p>
-        </div>
-        <div className="flex space-x-2">
-           <button className="btn btn-primary bg-indigo-600 border-0 text-xs px-4">
-             <i className="fas fa-plus-circle mr-2"></i> New Payment
-           </button>
-           <button className="btn btn-outline-dark text-xs px-4">
-             <i className="fas fa-file-invoice mr-2"></i> Bill Entry (SPS)
-           </button>
-        </div>
-      </div>
-
-      {/* Financial Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard title="Total Payable" value="₹ 42.50 L" icon="fas fa-arrow-up" color="#e11d48" trend="+2.4% from last month" />
-        <StatCard title="Total Receivable" value="₹ 18.20 L" icon="fas fa-arrow-down" color="#059669" trend="-1.5% from last month" />
-        <StatCard title="Bank Balance" value="₹ 1.05 Cr" icon="fas fa-wallet" color="#0E5C63" trend="Stable" />
-        <StatCard title="Cash in Hand" value="₹ 8.45 L" icon="fas fa-money-bill-wave" color="#d97706" trend="+5.1% increase" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pending Bills for Approval */}
-        <div className="card shadow-sm border-0 bg-white">
-          <div className="card-header py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-            <h5 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Pending SPS Approval</h5>
-            <span className="badge badge-danger">12 Bills</span>
+    <div className="p-4 space-y-4">
+      <PageHeader title="Accounts Dashboard" subtitle="Payables, receivables, cash and bank — live"
+        action={<div className="flex gap-2">
+          <button className="btn btn-secondary" onClick={() => nav('/accounts/bills')}><i className="fas fa-file-invoice mr-2" />Bill Entry (SPS)</button>
+          <button className="btn btn-primary" onClick={() => nav('/accounts/payments')}><i className="fas fa-money-check-alt mr-2" />Supplier Payments</button>
+        </div>} />
+      {!d ? <p className="text-text-muted">Loading…</p> : <>
+        {Number(d.rec_walkin_due) > 0 && (
+          <div className="rounded-fiori border border-amber-300 bg-amber-50 text-amber-800 px-4 py-2 text-[13px]">
+            <i className="fas fa-exclamation-triangle mr-2" /><b>{inr(d.rec_walkin_due)}</b> shows as unpaid on {d.rec_walkin_bills.toLocaleString('en-IN')} walk-in bills.
+            A walk-in customer cannot buy on credit, so this is unreconciled (mostly outlet-synced) bill data, not a receivable — it is left out of the totals below.
           </div>
-          <div className="card-body p-0">
-             <table className="w-full text-left text-xs">
-               <thead className="bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-100">
-                 <tr>
-                   <th className="px-4 py-3">GRN #</th>
-                   <th className="px-4 py-3">Supplier</th>
-                   <th className="px-4 py-3 text-right">Amount</th>
-                   <th className="px-4 py-3 text-center">Action</th>
-                 </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-100">
-                 <tr>
-                    <td className="px-4 py-3 font-bold text-blue-600">GRN-0042</td>
-                    <td className="px-4 py-3">Oceanic Seafoods</td>
-                    <td className="px-4 py-3 text-right font-bold">₹1,25,000</td>
-                    <td className="px-4 py-3 text-center">
-                       <button className="bg-green-50 text-green-600 px-2 py-1 rounded font-bold hover:bg-green-100">Verify</button>
-                    </td>
-                 </tr>
-                 <tr>
-                    <td className="px-4 py-3 font-bold text-blue-600">GRN-0051</td>
-                    <td className="px-4 py-3">Fresh Catch</td>
-                    <td className="px-4 py-3 text-right font-bold">₹42,800</td>
-                    <td className="px-4 py-3 text-center">
-                       <button className="bg-green-50 text-green-600 px-2 py-1 rounded font-bold hover:bg-green-100">Verify</button>
-                    </td>
-                 </tr>
-               </tbody>
-             </table>
-          </div>
-          <div className="card-footer bg-white border-t border-slate-50 py-3 text-center">
-             <button className="text-blue-600 text-[10px] font-bold uppercase hover:underline">View All Pending Bills &rarr;</button>
-          </div>
+        )}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Stat label="Total payable" value={inr(d.payable)} tone="text-red-600" hint={<>Overdue {inr(d.overdue)} · due in 7 days {inr(d.due_7d)}</>} onClick={() => nav('/accounts/payments')} />
+          <Stat label="Total receivable" value={inr(d.rec_receivable)} tone="text-green-700" hint={<>Overdue {inr(d.rec_overdue)}</>} />
+          <Stat label="Cash (safes + people)" value={inr(Number(d.in_safes) + Number(d.with_people))}
+            hint={<>In transit {inr(d.in_transit)} · deposits to verify {inr(d.deposits_unverified)}</>} onClick={() => nav('/accounts/cash')} />
+          <Stat label="Bank (system book)" value={inr(d.banks.reduce((t, b) => t + Number(b.balance), 0))} hint={`${d.banks.length} account(s)`} />
         </div>
-
-        {/* Recent Payments */}
-        <div className="card shadow-sm border-0 bg-white">
-          <div className="card-header py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-            <h5 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Recent Payment Vouchers</h5>
-            <span className="badge badge-info">This Week</span>
-          </div>
-          <div className="card-body p-0">
-             <table className="w-full text-left text-xs">
-               <thead className="bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-100">
-                 <tr>
-                   <th className="px-4 py-3">Voucher #</th>
-                   <th className="px-4 py-3">Payee</th>
-                   <th className="px-4 py-3">Mode</th>
-                   <th className="px-4 py-3 text-right">Amount</th>
-                 </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-100">
-                 <tr>
-                    <td className="px-4 py-3 font-bold text-slate-700">PV-2024-88</td>
-                    <td className="px-4 py-3">Modern Fisheries</td>
-                    <td className="px-4 py-3"><span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold uppercase">UPI</span></td>
-                    <td className="px-4 py-3 text-right font-black text-slate-900">₹85,000</td>
-                 </tr>
-                 <tr>
-                    <td className="px-4 py-3 font-bold text-slate-700">PV-2024-87</td>
-                    <td className="px-4 py-3">Rent - HO Office</td>
-                    <td className="px-4 py-3"><span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase">CHEQUE</span></td>
-                    <td className="px-4 py-3 text-right font-black text-slate-900">₹2,40,000</td>
-                 </tr>
-               </tbody>
-             </table>
-          </div>
-          <div className="card-footer bg-white border-t border-slate-50 py-3 text-center">
-             <button className="text-blue-600 text-[10px] font-bold uppercase hover:underline">View Payment Ledger &rarr;</button>
-          </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Stat label="Bills to verify" value={d.bills_pending} tone={d.bills_pending ? 'text-amber-600' : undefined} hint={inr(d.bills_pending_amt)} onClick={() => nav('/accounts/bills')} />
+          <Stat label="Disputed bills" value={d.bills_disputed} tone={d.bills_disputed ? 'text-red-600' : undefined} hint="Bill ≠ GRN — not payable" onClick={() => nav('/accounts/bills')} />
+          <Stat label="Payments to approve" value={d.payments_pending} tone={d.payments_pending ? 'text-amber-600' : undefined} hint={inr(d.payments_pending_amt)} onClick={() => nav('/accounts/payments')} />
+          <Stat label="Cash deposits to verify" value={inr(d.deposits_unverified)} tone={Number(d.deposits_unverified) ? 'text-amber-600' : undefined} hint="Match with bank statement" onClick={() => nav('/accounts/cash')} />
         </div>
-      </div>
-
-      {/* Bank Balances */}
-      <div className="card border-0 shadow-sm overflow-hidden">
-        <div className="card-header bg-slate-800 text-white py-2 text-[10px] uppercase font-bold tracking-widest">
-           Bank & Ledger Reconciliation
+        <div className="grid lg:grid-cols-2 gap-4">
+          <Section title="Top supplier payables">
+            {!d.top_payables.length ? <p className="text-[13px] text-text-muted">Nothing payable</p> :
+              <table className="ent-table"><thead><tr><th>Supplier</th><th className="!text-right">Not due</th><th className="!text-right">Overdue</th><th className="!text-right">Total</th></tr></thead>
+                <tbody>{d.top_payables.map(a => {
+                  const od = Number(a.d30) + Number(a.d60) + Number(a.d90) + Number(a.d90p)
+                  return <tr key={a.supplier_id}><td>{a.supplier_name}</td><td className="text-right">{inr(a.not_due)}</td>
+                    <td className={`text-right ${od ? 'text-red-600 font-semibold' : ''}`}>{inr(od)}</td><td className="text-right font-semibold">{inr(a.total)}</td></tr>
+                })}</tbody></table>}
+          </Section>
+          <Section title="Recent supplier payments">
+            {!d.recent_payments.length ? <p className="text-[13px] text-text-muted">No payments yet</p> :
+              <table className="ent-table"><thead><tr><th>No.</th><th>Date</th><th>Supplier</th><th className="!text-right">Amount</th><th>Status</th></tr></thead>
+                <tbody>{d.recent_payments.map(p => <tr key={p.id}><td className="font-mono text-[12px]">{p.payment_no}</td><td>{dmy(p.payment_date)}</td><td>{p.supplier_name}</td>
+                  <td className="text-right">{inr(p.amount)}</td><td><span className={`text-[11px] px-2 py-0.5 rounded-full capitalize ${PAY_STATUS[p.status]}`}>{p.status}</span></td></tr>)}</tbody></table>}
+          </Section>
+          <Section title="Bank accounts">
+            {!d.banks.length ? <p className="text-[13px] text-text-muted">Add bank accounts in Cash Management → Setup</p> :
+              <table className="ent-table"><thead><tr><th>Account</th><th className="!text-right">Balance (system)</th></tr></thead>
+                <tbody>{d.banks.map(b => <tr key={b.id}><td>{b.name} <span className="text-text-muted text-[12px]">****{b.last4}</span></td><td className="text-right font-semibold">{inr(b.balance)}</td></tr>)}</tbody></table>}
+            <p className="text-[11px] text-text-muted mt-2 mb-0">Opening balance + verified cash deposits − posted supplier payments. Reconcile with the bank statement.</p>
+          </Section>
+          <Section title="Cash position">
+            <table className="ent-table"><tbody>
+              <tr><td>In branch safes</td><td className="text-right font-semibold">{inr(d.in_safes)}</td></tr>
+              <tr><td>With people (area managers / HO)</td><td className="text-right font-semibold">{inr(d.with_people)}</td></tr>
+              <tr><td>Handovers in transit</td><td className="text-right text-amber-600">{inr(d.in_transit)}</td></tr>
+              <tr><td>Deposits awaiting bank check</td><td className="text-right text-amber-600">{inr(d.deposits_unverified)}</td></tr>
+            </tbody></table>
+          </Section>
         </div>
-        <div className="card-body p-0 grid grid-cols-1 md:grid-cols-3 divide-x divide-slate-100">
-           <div className="p-4 flex items-center space-x-4">
-              <div className="bg-blue-100 p-3 rounded-full text-blue-600 text-xl"><i className="fas fa-university"></i></div>
-              <div>
-                 <div className="text-[10px] text-slate-400 font-bold uppercase">HDFC Bank (8842)</div>
-                 <div className="text-lg font-black text-slate-800">₹ 82,45,210.00</div>
-              </div>
-           </div>
-           <div className="p-4 flex items-center space-x-4">
-              <div className="bg-indigo-100 p-3 rounded-full text-indigo-600 text-xl"><i className="fas fa-university"></i></div>
-              <div>
-                 <div className="text-[10px] text-slate-400 font-bold uppercase">ICICI Current (0021)</div>
-                 <div className="text-lg font-black text-slate-800">₹ 14,20,500.00</div>
-              </div>
-           </div>
-           <div className="p-4 flex items-center space-x-4">
-              <div className="bg-green-100 p-3 rounded-full text-green-600 text-xl"><i className="fas fa-money-bill-wave"></i></div>
-              <div>
-                 <div className="text-[10px] text-slate-400 font-bold uppercase">HO Petty Cash</div>
-                 <div className="text-lg font-black text-slate-800">₹ 8,45,000.00</div>
-              </div>
-           </div>
-        </div>
-      </div>
+      </>}
     </div>
-  );
-};
-
-export default AccountsDashboard;
+  )
+}

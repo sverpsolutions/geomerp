@@ -151,7 +151,7 @@ export default function invoice_view_page() {
             </tr>
             {Number(inv.cd_percent) > 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-2 text-right text-orange-600">CD ({Number(inv.cd_percent)}%)</td>
+                <td colSpan={9} className="px-4 py-2 text-right text-orange-600">CD ({Number(inv.cd_percent)}%) — included above</td>
                 <td className="px-4 py-2 text-right text-orange-600">−₹{Number(inv.cd_amount).toFixed(2)}</td>
               </tr>
             )}

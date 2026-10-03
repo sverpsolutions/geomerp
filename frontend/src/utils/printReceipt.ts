@@ -19,7 +19,8 @@ export function printReceipt(inv: invoice_out, s: Partial<CompanySettings>, x: r
   const logo = s.logo_path ? new URL(s.logo_path, window.location.origin).href : ''
   const totalQty = inv.items.reduce((a, it) => a + Number(it.qty), 0)
   const itemsTotal = inv.items.reduce((a, it) => a + Number(it.total), 0)
-  const ratio = itemsTotal > 0 ? (Number(inv.total_amount) - Number(inv.round_off || 0)) / itemsTotal : 1  // spreads CD into lines
+  const ratio = itemsTotal > 0 ? (Number(inv.total_amount) - Number(inv.round_off || 0)) / itemsTotal : 1  // spreads CD into lines (bills saved before CD moved into lines)
+  const cdInLines = Math.abs(ratio - 1) < 0.0005 ? Number(inv.cd_amount || 0) : 0  // newer bills: line totals are already after CD
   const mrpTotal = inv.items.reduce((a, it) => a + (x.mrp?.[it.product_id] ?? Number(it.total) / Number(it.qty)) * Number(it.qty), 0)
   const saved = Math.round((mrpTotal - Number(inv.total_amount)) * 100) / 100
   const change = x.tendered ? Math.max(0, x.tendered - Number(inv.paid_amount)) : 0
@@ -79,8 +80,9 @@ export function printReceipt(inv: invoice_out, s: Partial<CompanySettings>, x: r
   ${logo ? `<div style="text-align:center;margin-bottom:6px;"><img src="${esc(logo)}" style="max-height:48px;max-width:100%;object-fit:contain;" onerror="this.remove()"></div>` : ''}
   <div style="text-align:center;margin-bottom:6px;">
     <div style="font-size:14px;font-weight:bold;text-transform:uppercase;">${esc(s.brand_name)}</div>
+    ${s.legal_name && s.legal_name.trim().toLowerCase() !== (s.brand_name || '').trim().toLowerCase() ? `<div style="font-size:9.5px;font-weight:bold;">${esc(s.legal_name)}</div>` : ''}
     <div style="font-size:9.5px;line-height:1.35;margin-top:2px;">
-      ${esc(s.ho_address)}<br>${s.ho_phone ? `Ph: ${esc(s.ho_phone)}` : ''}${s.gstin ? `<br>GSTIN: <strong>${esc(s.gstin)}</strong>` : ''}
+      ${esc(s.ho_address)}<br>${s.ho_phone ? `Ph: ${esc(s.ho_phone)}` : ''}${s.gstin ? `<br>GSTIN: <strong>${esc(s.gstin)}</strong>` : ''}${s.fssai_no ? `<br>FSSAI Lic. No: <strong>${esc(s.fssai_no)}</strong>` : ''}
     </div>
   </div>
   <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin-bottom:6px;font-size:9.5px;">
@@ -99,11 +101,11 @@ export function printReceipt(inv: invoice_out, s: Partial<CompanySettings>, x: r
     <tbody>${lines}</tbody>
   </table>
   <table style="font-size:9.5px;margin-bottom:6px;line-height:1.4;">
-    ${row(`Subtotal (Qty: ${Number.isInteger(totalQty) ? totalQty : totalQty.toFixed(3)})`, `&#8377;${itemsTotal.toFixed(2)}`)}
+    ${row(`Subtotal (Qty: ${Number.isInteger(totalQty) ? totalQty : totalQty.toFixed(3)})`, `&#8377;${(itemsTotal + cdInLines).toFixed(2)}`)}
+    ${Number(inv.cd_percent) > 0 ? row(`CD (${Number(inv.cd_percent)}%)`, `- &#8377;${n2(inv.cd_amount)}`) : ''}
     ${row('Taxable Amount', `&#8377;${n2(inv.taxable_amount)}`)}
     ${inv.is_interstate ? row('IGST', `&#8377;${n2(inv.igst_amount)}`)
       : row('CGST', `&#8377;${n2(inv.cgst_amount)}`) + row('SGST', `&#8377;${n2(inv.sgst_amount)}`)}
-    ${Number(inv.cd_percent) > 0 ? row(`CD (${Number(inv.cd_percent)}%)`, `- &#8377;${n2(inv.cd_amount)}`) : ''}
     ${Number(inv.round_off || 0) !== 0 ? row('Round Off', `${Number(inv.round_off) > 0 ? '+' : '-'} &#8377;${Math.abs(Number(inv.round_off)).toFixed(2)}`) : ''}
     ${row('GRAND TOTAL', `&#8377;${n2(inv.total_amount)}`, 'font-weight:bold;font-size:11.5px;border-top:1px dashed #000;border-bottom:1px dashed #000;')}
     ${saved > 0 ? row('&#127881; You Saved', `&#8377;${saved.toFixed(2)}`, 'font-size:11.5px;font-weight:600;') : ''}
@@ -114,7 +116,8 @@ export function printReceipt(inv: invoice_out, s: Partial<CompanySettings>, x: r
   </table>
   ${gstSummary ? `<div style="font-size:8.5px;border-bottom:1px dashed #000;padding:4px 0 6px;margin-bottom:6px;line-height:1.35;">
     <div style="font-weight:bold;text-transform:uppercase;margin-bottom:2px;border-bottom:1px dotted #ccc;">GST Tax Summary</div>${gstSummary}</div>` : ''}
-  <div style="text-align:center;font-size:10px;margin-top:6px;">Thank you for your visit!</div>
+  ${s.invoice_terms ? `<div style="font-size:8px;line-height:1.3;margin-top:4px;">${esc(s.invoice_terms).split('\n').join('<br>')}</div>` : ''}
+  <div style="text-align:center;font-size:10px;margin-top:6px;">${esc(s.invoice_footer || 'Thank you for your visit!')}</div>
 </div>
 <script>window.onload = function () { window.print(); };<\/script>
 </body></html>`

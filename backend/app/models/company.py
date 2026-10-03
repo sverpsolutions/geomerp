@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, Numeric
+from sqlalchemy import Column, Integer, String, Text, Boolean, Numeric, DateTime
 from app.core.database import base
 
 class CompanySetting(base):
@@ -39,3 +39,33 @@ class CompanySetting(base):
     item_code_format = Column(String, default="[PREFIX]-[BRAND]-[VARIANT]-[SIZE]")
     hsn_code_length = Column(Integer, default=8)
     strict_hsn_validation = Column(Boolean, default=False)
+
+    # Company profile (from bombayfishries settings / sps_company / hr_company_settings)
+    legal_name = Column(String(200))
+    company_type = Column(String(40))
+    company_pan = Column(String(10))
+    state_code = Column(String(2))
+    fssai_no = Column(String(14))
+    msme_no = Column(String(30))
+    iec_no = Column(String(10))
+    reg_address = Column(Text)
+    reg_city = Column(String(60))
+    reg_state = Column(String(60))
+    reg_pincode = Column(String(6))
+    ho_city = Column(String(60))
+    ho_pincode = Column(String(6))
+    company_website = Column(String(150))
+    alt_phone = Column(String(20))
+    bank_account_name = Column(String(150))
+    bank_name = Column(String(100))
+    bank_account_no = Column(String(30))
+    bank_ifsc = Column(String(11))
+    bank_branch = Column(String(100))
+    upi_id = Column(String(60))
+    authorized_signatory = Column(String(100))
+    signatory_designation = Column(String(60))
+    invoice_terms = Column(Text)
+    invoice_footer = Column(String(200))
+    fy_start_month = Column(Integer, default=4)
+    updated_at = Column(DateTime)
+    updated_by = Column(Integer)

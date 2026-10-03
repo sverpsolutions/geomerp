@@ -26,6 +26,30 @@ export interface CompanySettings {
     low_stock_threshold: number;
     show_product_img: boolean;
     hsn_code_length: number;
+    strict_hsn_validation: boolean;
+    // company profile
+    legal_name: string | null; company_type: string | null; company_pan: string | null; state_code: string | null
+    fssai_no: string | null; msme_no: string | null; iec_no: string | null
+    reg_address: string | null; reg_city: string | null; reg_state: string | null; reg_pincode: string | null
+    ho_city: string | null; ho_pincode: string | null; company_website: string | null; alt_phone: string | null
+    bank_account_name: string | null; bank_name: string | null; bank_account_no: string | null; bank_ifsc: string | null
+    bank_branch: string | null; upi_id: string | null
+    authorized_signatory: string | null; signatory_designation: string | null
+    invoice_terms: string | null; invoice_footer: string | null; fy_start_month: number; updated_at: string | null
+}
+
+export interface company_doc {
+    group: string; type: string; label: string; has_expiry: boolean
+    status: 'missing' | 'valid' | 'expiring' | 'expired' | 'no_expiry'
+    current: { id: number; doc_number: string | null; file_path: string; issue_date: string | null; expiry_date: string | null; notes: string | null; uploaded_by_name: string | null; created_at: string } | null
+    history: { id: number; doc_number: string | null; file_path: string; expiry_date: string | null; created_at: string; uploaded_by_name: string | null }[]
+}
+
+export const company_api = {
+    meta: () => axios.get<{ company_types: string[]; expiry_warn_days: number }>('/company/meta'),
+    upload_logo: (file: File) => { const f = new FormData(); f.append('file', file); return axios.post<{ logo_path: string }>('/company/logo', f, { headers: { 'Content-Type': 'multipart/form-data' } }) },
+    documents: () => axios.get<company_doc[]>('/company/documents'),
+    upload_document: (f: FormData) => axios.post('/company/documents', f, { headers: { 'Content-Type': 'multipart/form-data' } }),
 }
 
 export const getCompanySettings = async () => {

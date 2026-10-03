@@ -64,10 +64,13 @@ def _two(val: Decimal) -> Decimal:
     return val.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-def _calc_item(item_in, is_interstate: bool):
+def _calc_item(item_in, is_interstate: bool, cd_percent: Decimal = Decimal("0")):
     """
     Returns dict of computed fields for one invoice line item.
     GST rule: is_interstate=False → CGST+SGST; True → IGST only
+    Bill-level CD (cash discount) comes off each line's taxable value BEFORE GST, so GST falls
+    with it and, on GST-inclusive retail prices, the customer gets exactly cd% off the selling price.
+    cd_taxable / cd_amount are the line's CD share (excl. / incl. GST); they are not item columns.
     """
     qty = item_in.qty
     rate = item_in.rate
@@ -83,6 +86,8 @@ def _calc_item(item_in, is_interstate: bool):
         disc_amt = _two(disc_val * qty)
 
     taxable = _two(gross - disc_amt)
+    cd_taxable = _two(taxable * cd_percent / Decimal("100"))
+    taxable -= cd_taxable
     half_gst = _two(gst_pct / Decimal("2"))
 
     if is_interstate:
@@ -111,12 +116,14 @@ def _calc_item(item_in, is_interstate: bool):
         "sgst_amount": sgst_amt,
         "igst_amount": igst_amt,
         "total": total,
+        "cd_taxable": cd_taxable,
+        "cd_amount": _two(cd_taxable * (1 + gst_pct / Decimal("100"))),
     }
 
 
-def _calc_invoice_totals(items_data: list[dict], cd_percent: Decimal):
-    """Aggregate item totals + apply cash-discount on taxable amount."""
-    subtotal     = sum(i["taxable_amt"] for i in items_data)
+def _calc_invoice_totals(items_data: list[dict]):
+    """Aggregate item totals. CD is already inside each line (see _calc_item)."""
+    subtotal     = sum(i["taxable_amt"] + i["cd_taxable"] for i in items_data)  # taxable before CD
     discount     = sum(
         (i["qty"] * i["rate"] * i["disc_val"] / Decimal("100")
          if i["disc_type"] == "%" else i["disc_val"] * i["qty"])
@@ -128,8 +135,8 @@ def _calc_invoice_totals(items_data: list[dict], cd_percent: Decimal):
     igst_amount  = sum(i["igst_amount"] for i in items_data)
     total_gst    = _two(cgst_amount + sgst_amount + igst_amount)
 
-    cd_amount    = _two(taxable * cd_percent / Decimal("100"))
-    total_amount = _two(taxable - cd_amount + total_gst)
+    cd_amount    = _two(sum(i["cd_amount"] for i in items_data))  # what the customer saved, incl. GST
+    total_amount = _two(taxable + total_gst)
 
     return {
         "subtotal":      _two(subtotal),
@@ -206,7 +213,7 @@ async def create_invoice(
         if prod_obj.is_expired:
             raise ValueError(f"Item '{prod_obj.name}' has expired and cannot be sold")
 
-        calc = _calc_item(item_in, data.is_interstate)
+        calc = _calc_item(item_in, data.is_interstate, data.cd_percent)
         row = invoice_item(
             product_id=item_in.product_id,
             item_code=item_in.item_code,
@@ -220,12 +227,12 @@ async def create_invoice(
             gst_percent=item_in.gst_percent,
             hsn_code=item_in.hsn_code,
             challan_item_id=item_in.challan_item_id,
-            **calc,
+            **{k: v for k, v in calc.items() if not k.startswith("cd_")},
         )
         item_rows.append(row)
         items_data.append({**item_in.__dict__, **calc})
 
-    totals = _calc_invoice_totals(items_data, data.cd_percent)
+    totals = _calc_invoice_totals(items_data)
     if data.round_off:
         rounded = totals["total_amount"].quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         totals["round_off"] = rounded - totals["total_amount"]
@@ -237,6 +244,8 @@ async def create_invoice(
         data.payment_mode = modes.pop() if len(modes) == 1 else "split"
     else:
         paid = data.paid_amount
+    if paid > totals["total_amount"] and not data.payments and paid - totals["total_amount"] <= Decimal("0.05"):
+        paid = totals["total_amount"]  # paisa drift between screen and server rounding
     if paid > totals["total_amount"]:
         raise ValueError("Paid amount is more than the bill total")
     due  = _two(totals["total_amount"] - paid)
@@ -624,3 +633,18 @@ async def convert_estimate_to_invoice(
     await db.commit()
     return inv
 
+
+
+if __name__ == "__main__":
+    # CD self-check: python -m app.services.billing_service
+    from types import SimpleNamespace as NS
+    # Red Bull: 10 x Rs 325 incl. 40% GST, sent GST-exclusive like the POS does
+    it = NS(qty=Decimal("10"), rate=Decimal("232.1429"), disc_val=Decimal("0"), disc_type="₹", gst_percent=Decimal("40"))
+    near = lambda v, want: abs(v - Decimal(want)) <= Decimal("0.02")  # per-line GST rounding; round-off absorbs it
+    assert near(_calc_item(it, False)["total"], "3250")
+    c = _calc_item(it, False, Decimal("10"))
+    t = _calc_invoice_totals([{**c, "qty": it.qty, "rate": it.rate, "disc_val": it.disc_val, "disc_type": it.disc_type}])
+    assert near(t["total_amount"], "2925"), t           # 10% off selling price (was 3017.86: 10% off taxable)
+    assert t["taxable_amount"] == Decimal("2089.29") and near(t["total_gst"], "835.71"), t  # GST falls too
+    assert t["cd_amount"] == Decimal("325.00") and t["subtotal"] == Decimal("2321.43"), t
+    print("ok")

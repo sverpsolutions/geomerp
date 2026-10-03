@@ -21,6 +21,7 @@ class day_open_in(BaseModel):
 
 class day_close_in(BaseModel):
     remarks: Optional[str] = None
+    safe_counted: Optional[Decimal] = Field(None, ge=0)  # physical count of the safe after all shifts are closed
     force: bool = False  # auto-close open shifts at system figures (emergency day close)
 
 
@@ -101,7 +102,7 @@ async def get_day(day_id: int, db: AsyncSession = Depends(get_db), user: current
 @router.post("/day/{day_id}/close")
 async def day_close(day_id: int, body: day_close_in, db: AsyncSession = Depends(get_db),
                     user: current_user_dep = Depends(manager)):
-    return await _run(svc.day_close(db, day_id, body.remarks, body.force, user))
+    return await _run(svc.day_close(db, day_id, body.remarks, body.force, user, body.safe_counted))
 
 
 @router.post("/open")

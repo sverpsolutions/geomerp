@@ -1,10 +1,20 @@
-from pydantic import BaseModel, field_validator
+from datetime import datetime
+from pydantic import BaseModel, Field, field_validator
+
+# must match the users_role_check constraint in the database
+USER_ROLES = ("superadmin", "admin", "manager", "staff", "viewer")
+
+
+def _role(v: str | None) -> str | None:
+    if v is not None and v not in USER_ROLES:
+        raise ValueError(f"role must be one of {', '.join(USER_ROLES)}")
+    return v
 
 
 class user_create(BaseModel):
-    name: str
-    username: str
-    password: str
+    name: str = Field(..., min_length=2, max_length=100)
+    username: str = Field(..., min_length=3, max_length=50, pattern=r"^[A-Za-z0-9_.@-]+$")
+    password: str = Field(..., min_length=6, max_length=128)
     email: str | None = None
     role: str = "staff"
     role_id: int | None = None
@@ -20,10 +30,7 @@ class user_create(BaseModel):
     @field_validator("role")
     @classmethod
     def validate_role(cls, v: str) -> str:
-        allowed = {"admin", "manager", "staff", "accountant", "hr", "warehouse_staff", "hht_user", "supervisor"}
-        if v not in allowed:
-            raise ValueError(f"role must be one of {allowed}")
-        return v
+        return _role(v)
 
 
 class user_update(BaseModel):
@@ -39,6 +46,15 @@ class user_update(BaseModel):
     putaway_rights: bool | None = None
     rack_transfer_rights: bool | None = None
 
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v: str | None) -> str | None:
+        return _role(v)
+
+
+class user_password_reset(BaseModel):
+    new_password: str = Field(..., min_length=6, max_length=128)
+
 
 class user_password_change(BaseModel):
     old_password: str
@@ -52,7 +68,9 @@ class user_list_out(BaseModel):
     email: str | None
     role: str
     outlet_id: int | None
+    outlet_name: str | None = None
     status: bool
+    last_login: datetime | None = None
     hht_login_id: str | None
     device_permission: bool
     warehouse_permission: bool

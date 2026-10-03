@@ -24,6 +24,7 @@ type SplitMode = 'cash' | 'card' | 'upi'
 const WALK_IN: Cust = { id: 1, name: 'Walk-in Customer' }
 const NAVY = '#1D2D3D', NAVY_SOFT = '#2C455D', ACCENT = '#5980A6'
 const r2 = (v: number) => Math.round(v * 100) / 100
+const exRate = (l: { rate: number; gst: number }) => Math.round(l.rate / (1 + l.gst / 100) * 10000) / 10000  // GST-exclusive rate sent to the API
 const inr = (v: number) => `₹ ${v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const errMsg = (e: any) => e?.response?.data?.detail || e?.message || 'Something went wrong'
 const HOLD_KEY = 'pos_held_bills'
@@ -94,19 +95,19 @@ export default function PosBilling() {
 
   useEffect(() => { const t = setInterval(() => setClock(new Date()), 30000); return () => clearInterval(t) }, [])
 
-  // ── totals (same math as billing_service: GST inside price, CD on taxable) ──
+  // ── totals: same rounding steps as billing_service._calc_item so screen == saved bill ──
+  // GST is inside the shelf price; CD % comes off each line before GST, i.e. CD % off the selling price
   const t = useMemo(() => {
-    let gross = 0, taxable = 0, mrpTotal = 0, qty = 0
+    let gross = 0, taxable = 0, mrpTotal = 0, qty = 0, net = 0, cd = 0
     const gstBy = { cgst: 0, sgst: 0 }
     for (const l of lines) {
-      const line = l.qty * l.rate, tx = line / (1 + l.gst / 100)
-      gross += line; taxable += tx; mrpTotal += l.qty * (l.mrp || l.rate); qty += l.qty
-      gstBy.cgst += (line - tx) / 2; gstBy.sgst += (line - tx) / 2
+      const ex = r2(l.qty * exRate(l)), cdTx = r2(ex * cdPct / 100), tx = r2(ex - cdTx), half = r2(r2(l.gst / 2) * tx / 100)
+      gross += l.qty * l.rate; taxable += tx; mrpTotal += l.qty * (l.mrp || l.rate); qty += l.qty
+      gstBy.cgst += half; gstBy.sgst += half; net += r2(tx + 2 * half); cd += r2(cdTx * (1 + l.gst / 100))
     }
-    const cd = r2(taxable * cdPct / 100)
-    const beforeRound = r2(gross - cd)
+    const beforeRound = r2(net)
     const grand = roundOff ? Math.round(beforeRound) : beforeRound
-    return { gross: r2(gross), taxable: r2(taxable), cgst: r2(gstBy.cgst), sgst: r2(gstBy.sgst), cd, roundOffAmt: r2(grand - beforeRound),
+    return { gross: r2(gross), taxable: r2(taxable), cgst: r2(gstBy.cgst), sgst: r2(gstBy.sgst), cd: r2(cd), roundOffAmt: r2(grand - beforeRound),
              grand, mrpTotal: r2(mrpTotal), itemDisc: r2(mrpTotal - gross), save: r2(mrpTotal - grand), qty }
   }, [lines, cdPct, roundOff])
 
@@ -249,7 +250,7 @@ export default function PosBilling() {
         cd_percent: cdPct, round_off: roundOff, notes: notes.trim() || undefined, paid_amount: paid, payments,
         items: lines.map(l => ({
           product_id: l.product_id, item_code: l.item_code ?? undefined, name: l.name, qty: l.qty, unit: l.unit,
-          rate: Math.round(l.rate / (1 + l.gst / 100) * 10000) / 10000, disc_val: 0, disc_type: '₹',
+          rate: exRate(l), disc_val: 0, disc_type: '₹',
           gst_percent: l.gst, hsn_code: l.hsn_code ?? undefined,
         })),
       })
@@ -502,7 +503,7 @@ export default function PosBilling() {
                   <div className="flex justify-between pt-1 border-t border-dashed border-green-600 font-bold text-green-700"><span>🎉 Total Saving</span><span>{inr(Math.max(0, t.save))}</span></div>
                 </div>
                 <div className="px-4 py-2 bg-amber-50 border-t border-amber-200">
-                  <div className="flex justify-between font-bold text-amber-800 mb-1"><span>CD Discount (on taxable)</span><span className="text-red-600">- {inr(t.cd)}</span></div>
+                  <div className="flex justify-between font-bold text-amber-800 mb-1"><span>CD Discount (on selling price)</span><span className="text-red-600">- {inr(t.cd)}</span></div>
                   <div className="flex items-center gap-2">
                     <input type="number" min={0} max={100} step="0.01" value={cdPct} onChange={e => setCdPct(Math.min(100, Math.max(0, Number(e.target.value))))} className="w-20 border px-2 py-1" />
                     <span className="text-amber-800 text-xs">%</span>

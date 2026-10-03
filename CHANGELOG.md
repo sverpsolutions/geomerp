@@ -2,6 +2,27 @@
 
 Versions follow `MAJOR.MINOR.PATCH`. New work lands on the `testing` branch as `-beta.N` tags; once verified it is merged to `main` and tagged without the suffix.
 
+## v1.5.0-beta.2 — 2026-10-03 (testing) — cash management, accounts payable, users & locations, company profile
+
+Run `alembic upgrade head` (4 migrations: `c6e8a0b2d4f5`, `d7f9b1c3e5a6`, `e8a0c2d4f6b7`, `f9b1d3e5a7c8`).
+
+### Added
+- **Cash Management** (`/accounts/cash`, ported + tightened from NCG cash management): one cash book where every rupee sits in a drawer, branch safe, a person, in transit or the bank. Opening float comes out of the safe and counted shift cash goes back into it; drawer pickup; expenses (category approval limits, a different manager approves, bill no + photo where required); pay-ins; handovers stay in transit until the **receiver** accepts; bank deposits need slip no + slip photo and stay unverified until accounts matches the bank statement (not the depositor). No overdraw, row locks per custody, no edits; void only by admin on the same open day. Day Close requires a physical safe count; variance posted and flagged. HO Cash Control: cash by branch, people, banks, days since last deposit.
+- **Accounts** (`/accounts/dashboard`, `/accounts/bills`, `/accounts/payments`, replacing mock pages): Bill Entry (SPS) matches the supplier bill to its GRN (±₹1, else disputed until accepted with a reason; verifier ≠ GRN maker; duplicate supplier bill blocked). Supplier payments from the bank (UTR/cheque unique), split across verified bills + cash discount, advance and later adjustment, **maker-checker** approval, pending payments reserve the bill, void reverses. Supplier aging, ledger, bank book, customer receivables, live dashboard.
+- **Users & Locations** (`/settings/users`): create users, role, branch, reset password, activate/deactivate. A user with an open shift or cash in hand cannot be moved or deactivated; no self-demotion; superadmin only by superadmin.
+- **Company Profile** (`/settings/company`, fields from bombayfishries settings / sps_company / hr_company_settings): legal name, company type, GSTIN (check digit → state & code), PAN (must match GSTIN), CIN/LLPIN, TAN, FSSAI, Udyam, IEC, registered + head office address, bank details, UPI, signatory, invoice terms/footer, FY start, logo upload. Compliance documents checklist with numbers, expiry tracking and version history. Receipt prints legal name, FSSAI, terms and footer.
+
+### Changed
+- CD discount applies on the selling price: taken off each line before GST, so taxable value and GST drop with it (was % of taxable with GST unchanged).
+- Shift report header: logo, brand, store address/phone/GSTIN (HO fallback).
+- `staff` is the billing role that must work inside an open shift (no `cashier` role exists).
+- Company settings can only be changed by admin; every change is audit-logged.
+- Walk-in dues (unreconciled synced bills) are excluded from receivables and flagged on the dashboard.
+
+### Fixed
+- `users.outlet_id` pointed at the empty legacy `outlet_master`, so no user could be tied to a branch; now references `outlets`.
+- User API accepted roles the database rejects and unknown locations (500 errors); could not move a user back to Head Office.
+
 ## v1.5.0-beta.1 — 2026-10-02 (testing) — customer master, day & shift control
 
 ### Added

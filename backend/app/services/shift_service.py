@@ -19,7 +19,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.auth_service import write_audit
 
 ZERO = Decimal("0.00")
-MANAGER_ROLES = ("admin", "manager")
+MANAGER_ROLES = ("superadmin", "admin", "manager")
+CASHIER_ROLES = ("staff",)  # users.role has no "cashier"; billing staff must work inside their own shift
 DENOMS = (500, 200, 100, 50, 20, 10, 5, 2, 1)
 MODE = "LOWER(TRIM(p.payment_mode))"  # 'Cash ' and 'cash' are one drawer
 
@@ -71,7 +72,7 @@ async def guard(db: AsyncSession, outlet_id: Optional[int], user_id: Optional[in
         return None
     shift = await open_shift_of(db, user_id)
     role = (await db.execute(text("SELECT role FROM users WHERE id = :u"), {"u": user_id})).scalar()
-    if role == "cashier":
+    if role in CASHIER_ROLES:
         if not shift:
             raise ValueError("Open your cashier shift before billing (Billing → Day & Shift)")
         if shift["outlet_id"] != l:
@@ -106,12 +107,17 @@ async def shift_figures(db: AsyncSession, shift) -> dict:
         WHERE p.shift_id = :sid AND i.shift_id = :sid AND i.status <> 'cancelled' AND i.invoice_type <> 'return'"""), p)).scalar()
     cash_in = modes.get("cash", ZERO)
     cash_refunds = _two(inv["cash_refunds"])
+    from app.services import cash_service  # cash book: drawer pay-ins, expenses, pickups
+    mv = await cash_service.drawer_moves(db, shift["id"])
     return {
         "modes": modes,  # system collection per payment mode
         "total_collected": _two(sum(modes.values(), ZERO)),
         "system_cash": cash_in,
         "cash_refunds": cash_refunds,
-        "expected_cash": _two(Decimal(shift["opening_cash"]) + cash_in - cash_refunds),
+        "expected_cash": _two(Decimal(shift["opening_cash"]) + cash_in - cash_refunds
+                              + mv["pay_in"] - mv["expenses"] - mv["pickups"]),
+        "pay_ins": mv["pay_in"], "expenses": mv["expenses"], "pickups": mv["pickups"],
+        "pending_expenses": mv["pending_expenses"],
         "total_bills": inv["bills"],
         "total_sales": _two(inv["sales"]),
         "total_returns": _two(inv["returns"]),
@@ -229,10 +235,18 @@ async def day_reopen(db: AsyncSession, outlet_id: int, user) -> dict:
     return await get_day(db, row)
 
 
-async def day_close(db: AsyncSession, day_id: int, remarks: Optional[str], force: bool, user) -> dict:
+async def day_close(db: AsyncSession, day_id: int, remarks: Optional[str], force: bool, user,
+                    safe_counted: Optional[Decimal] = None) -> dict:
     day = (await db.execute(text("SELECT * FROM business_days WHERE id = :i FOR UPDATE"), {"i": day_id})).mappings().first()
     if not day or day["status"] != "open":
         raise ValueError("Business day is not open")
+    if safe_counted is None:
+        raise ValueError("Count the cash in the safe and enter it to close the day")
+    pending = (await db.execute(text("""
+        SELECT COUNT(*) FROM cash_entries WHERE kind = 'expense' AND status = 'pending' AND outlet_id = :o"""),
+        {"o": day["outlet_id"]})).scalar()
+    if pending:
+        raise ValueError(f"{pending} expense(s) are waiting for approval — approve or reject them first")
     fig = await day_figures(db, day)
     if fig["open_shifts"]:
         names = ", ".join(f"{s['cashier_name']} (#{s['id']})" for s in fig["open_shifts"])
@@ -245,8 +259,11 @@ async def day_close(db: AsyncSession, day_id: int, remarks: Optional[str], force
             await _close_shift_row(db, shift, sf, {**sf["modes"], "cash": sf["expected_cash"]}, None,
                                    f"Auto-closed at day close by {user.username} (not counted)", user)
         fig = await day_figures(db, day)
+    from app.services import cash_service
+    safe = await cash_service.post_safe_count(db, day, safe_counted, user)
     await db.execute(text("""
-        UPDATE business_days SET status = 'closed', closed_by = :u, closed_at = NOW(), close_remarks = :r,
+        UPDATE business_days SET safe_expected = :safe_expected, safe_counted = :safe_counted,
+          safe_variance = :safe_variance, status = 'closed', closed_by = :u, closed_at = NOW(), close_remarks = :r,
           total_bills = :total_bills, cancelled_bills = :cancelled_bills, gross_sales = :gross_sales,
           total_discount = :total_discount, total_gst = :total_gst, net_sales = :net_sales,
           total_returns = :total_returns, total_credit = :total_credit, total_collected = :total_collected,
@@ -255,7 +272,7 @@ async def day_close(db: AsyncSession, day_id: int, remarks: Optional[str], force
         WHERE id = :i"""), {
         **{k: v for k, v in fig.items() if k not in ("modes", "shifts", "open_shifts")},
         "modes": json.dumps({k: str(v) for k, v in fig["modes"].items()}),
-        "u": user.user_id, "r": remarks, "i": day_id})
+        **safe, "u": user.user_id, "r": remarks, "i": day_id})
     await _audit(db, user, "day_shift", "day_close", day_id,
                  f"Day close {day['business_date']} at {await outlet_name(db, day['outlet_id'])}: net {fig['net_sales']}")
     await db.commit()
@@ -271,6 +288,10 @@ async def shift_open(db: AsyncSession, outlet_id: int, opening_cash: Decimal, sh
         raise ValueError("You already have an open shift — close it first")
     if opening_cash < 0:
         raise ValueError("Opening cash cannot be negative")
+    from app.services import cash_service
+    if opening_cash > 0:  # the float comes out of the safe: check before creating the shift
+        await cash_service._require_funds(db, "safe", outlet_id, opening_cash,
+            f"Safe at {await outlet_name(db, outlet_id)} (record its opening balance as a Pay-in first)")
     try:
         sid = (await db.execute(text("""
             INSERT INTO cashier_shifts (business_day_id, outlet_id, business_date, cashier_id, shift_name,
@@ -281,12 +302,15 @@ async def shift_open(db: AsyncSession, outlet_id: int, opening_cash: Decimal, sh
     except IntegrityError:
         await db.rollback()
         raise ValueError("You already have an open shift")
+    await cash_service.post_float(db, sid, outlet_id, day["business_date"], opening_cash, user)
     await _audit(db, user, "day_shift", "shift_open", sid, f"Shift open with float {opening_cash}")
     await db.commit()
     return await get_shift(db, sid)
 
 
 async def _close_shift_row(db, shift, fig, actual: dict, denominations: Optional[dict], remarks, user):
+    if fig.get("pending_expenses"):
+        raise ValueError(f"Shift #{shift['id']} has {fig['pending_expenses']} expense(s) waiting for approval — approve or reject first")
     rec = reconcile(fig, actual)
     await db.execute(text("""
         UPDATE cashier_shifts SET status = 'closed', closed_at = NOW(), closed_by = :u, close_remarks = :r,
@@ -300,6 +324,8 @@ async def _close_shift_row(db, shift, fig, actual: dict, denominations: Optional
                                "system_cash", "expected_cash")},
         **rec, "mode_totals": json.dumps(rec["mode_totals"]), "den": json.dumps(denominations) if denominations else None,
         "u": user.user_id, "r": remarks, "i": shift["id"]})
+    from app.services import cash_service
+    await cash_service.post_shift_close(db, shift, rec["actual_cash"], user)
     await _audit(db, user, "day_shift", "shift_close", shift["id"],
                  f"Shift #{shift['id']} closed. Short {rec['short_amount']}, excess {rec['excess_amount']}")
     return rec
@@ -342,6 +368,9 @@ async def get_day(db: AsyncSession, day_id: int) -> dict:
     fig = await day_figures(db, day)
     out["shifts"], out["open_shifts"] = fig["shifts"], fig["open_shifts"]
     if day["status"] == "open":  # live; closed days keep their frozen snapshot
+        from app.services import cash_service
+        out["safe_balance"] = await cash_service.balance(db, "safe", day["outlet_id"])
+        out["safe_expected_at_close"] = await cash_service.safe_expected_at_close(db, day)
         out.update({k: v for k, v in fig.items() if k not in ("shifts", "open_shifts")})
         out["mode_totals"] = {k: str(v) for k, v in fig["modes"].items()}
     out.pop("modes", None)
@@ -357,6 +386,11 @@ async def get_shift(db: AsyncSession, shift_id: int) -> dict:
         raise ValueError("Shift not found")
     out = dict(s)
     out["outlet_name"] = await outlet_name(db, s["outlet_id"])
+    # store address / phone / GSTIN for the printed report header (HO details are used when empty)
+    o = (await db.execute(text("""
+        SELECT address, city, state, pincode, store_phone, gst_number FROM outlets WHERE id = :i"""),
+        {"i": s["outlet_id"]})).mappings().first()
+    out["outlet"] = dict(o) if o else None
     fig = await shift_figures(db, s)
     out["first_bill"], out["last_bill"] = fig["first_bill"], fig["last_bill"]
     if s["status"] == "open":

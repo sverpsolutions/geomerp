@@ -62,6 +62,7 @@ import AuditLogReport from '../pages/reports/AuditLogReport';
 import SystemHelp from '../pages/help/SystemHelp';
 import PortalHub from '../pages/help/PortalHub';
 import ThemeSettings from '../pages/settings/ThemeSettings';
+import UserManagement from '../pages/settings/UserManagement';
 import MultiBranchTransfer from '../pages/inventory/MultiBranchTransfer';
 import TransferRegister from '../pages/inventory/TransferRegister';
 import SyncMonitor from '../pages/inventory/SyncMonitor';
@@ -80,6 +81,10 @@ import CustomerAnalyticsReport from '../pages/reports/CustomerAnalyticsReport';
 import SalesReturn from '../pages/billing/SalesReturn';
 import CreditNotes from '../pages/billing/CreditNotes';
 import DayShift from '../pages/billing/DayShift';
+import CashManagement from '../pages/accounts/CashManagement';
+import AccountsDashboard from '../pages/accounts/AccountsDashboard';
+import BillEntry from '../pages/accounts/BillEntry';
+import SupplierPayments from '../pages/accounts/Payments';
 import PurchaseReturn from '../pages/purchases/PurchaseReturn';
 import DebitNotes from '../pages/purchases/DebitNotes';
 import ShopDashboard from '../pages/shop/ShopDashboard';
@@ -139,8 +144,9 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '501', path: '/inventory/status', component: StockReport, title: 'Stock Status' },
   { id: '502', path: '/inventory/sync', component: GlobalSync, title: 'Global Sync' },
   { id: '510', path: '/inventory/monitor', component: SyncMonitor, title: 'Sync Monitor' },
-  { id: '601', path: '/accounts/dashboard', component: () => <ComingSoon name="Accounts" />, title: 'Accounts' },
-  { id: '602', path: '/accounts/payments', component: () => <ComingSoon name="Payments" />, title: 'Payments' },
+  { id: '601', path: '/accounts/dashboard', component: AccountsDashboard, title: 'Accounts' },
+  { id: '602', path: '/accounts/payments', component: SupplierPayments, title: 'Supplier Payments' },
+  { id: '604', path: '/accounts/cash', component: CashManagement, title: 'Cash Management' },
   { id: '700', path: '/reports/center', component: ReportCenter, title: 'Report Center' },
   { id: '701', path: '/reports/sales', component: SalesReport, title: 'Sales Report' },
   { id: '702', path: '/reports/purchases', component: PurchaseReport, title: 'Purchase Report' },
@@ -172,6 +178,7 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '999', path: '/help', component: SystemHelp, title: 'System Help' },
   { id: '990', path: '/portals', component: PortalHub, title: 'Portal Hub' },
   { id: '910', path: '/settings/theme', component: ThemeSettings, title: 'Theme Settings' },
+  { id: '911', path: '/settings/users', component: UserManagement, title: 'Users & Locations' },
   { id: '801', path: '/hr/employees', component: () => <ComingSoon name="Employees" />, title: 'Employees' },
   { id: '802', path: '/hr/attendance', component: () => <ComingSoon name="Attendance" />, title: 'Attendance' },
   { id: '503', path: '/inventory/transfer/out', component: () => <TransferRegister direction="out" />, title: 'Stock Transfer OUT' },
@@ -184,7 +191,7 @@ export const APP_ROUTES: RouteConfig[] = [
   { id: '1002', path: '/logistics/new', component: LogisticTransferWizard, title: 'New Transfer' },
   { id: '1003', path: '/logistics/transfer/:id', component: LogisticTransferWizard, title: 'Logistics' },
   { id: '406', path: '/purchases/grn', component: Purchases, title: 'GRN — Inward' },
-  { id: '603', path: '/accounts/bills', component: () => <ComingSoon name="Bill Entry (SPS)" />, title: 'Bill Entry (SPS)' },
+  { id: '603', path: '/accounts/bills', component: BillEntry, title: 'Bill Entry (SPS)' },
   { id: '1101', path: '/schemes', component: () => <ComingSoon name="Schemes" />, title: 'Schemes' },
   { id: '1102', path: '/bulk-pricing', component: () => <ComingSoon name="Bulk Discount" />, title: 'Bulk Discount' },
   { id: '1201', path: '/processing', component: () => <ComingSoon name="Processing" />, title: 'Processing' },

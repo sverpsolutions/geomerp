@@ -120,8 +120,9 @@ const NAV_SECTIONS = [
     color: '#f43f5e', // Rose
     children: [
       { label: 'Accounts Dashboard', to: '/accounts/dashboard', icon: 'fas fa-tachometer-alt' },
+      { label: 'Cash Management', to: '/accounts/cash', icon: 'fas fa-wallet' },
       { label: 'Bill Entry (SPS)', to: '/accounts/bills', icon: 'fas fa-file-invoice-dollar' },
-      { label: 'Payment Entry', to: '/accounts/payments', icon: 'fas fa-money-check-alt' },
+      { label: 'Supplier Payments', to: '/accounts/payments', icon: 'fas fa-money-check-alt' },
     ],
   },
   {
@@ -191,6 +192,7 @@ const NAV_SECTIONS = [
     color: '#94a3b8', // Slate
     children: [
       { label: 'Company Profile', to: '/settings/company', icon: 'fas fa-building' },
+      { label: 'Users & Locations', to: '/settings/users', icon: 'fas fa-user-shield' },
       { label: 'Theme & Styling', to: '/settings/theme', icon: 'fas fa-palette' },
       { label: 'System Help', to: '/help', icon: 'fas fa-question-circle' },
     ],

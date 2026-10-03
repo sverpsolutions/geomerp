@@ -66,7 +66,7 @@ export default function invoice_create_page() {
   function calc_item(it: invoice_item_in) {
     const gross = it.qty * it.rate
     const disc  = it.disc_type === '%' ? gross * it.disc_val / 100 : it.disc_val * it.qty
-    const taxable = gross - disc
+    const taxable = (gross - disc) * (1 - cd_percent / 100)  // CD comes off before GST (billing_service)
     const half = it.gst_percent / 2
     const cgst = is_interstate ? 0 : taxable * half / 100
     const sgst = is_interstate ? 0 : taxable * half / 100
@@ -79,8 +79,8 @@ export default function invoice_create_page() {
   const sum_cgst     = calc_rows.reduce((a, r) => a + r.cgst, 0)
   const sum_sgst     = calc_rows.reduce((a, r) => a + r.sgst, 0)
   const sum_igst     = calc_rows.reduce((a, r) => a + r.igst, 0)
-  const cd_amount    = sum_taxable * cd_percent / 100
-  const grand_total  = sum_taxable - cd_amount + sum_cgst + sum_sgst + sum_igst
+  const grand_total  = sum_taxable + sum_cgst + sum_sgst + sum_igst
+  const cd_amount    = cd_percent > 0 && cd_percent < 100 ? grand_total * cd_percent / (100 - cd_percent) : 0  // saving incl. GST
   const due          = grand_total - paid_amount
 
   async function submit() {
